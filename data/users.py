@@ -1,5 +1,3 @@
-from email.policy import default
-
 import sqlalchemy.orm
 from sqlalchemy import func, Column, Integer, String, Boolean, Float, BigInteger, Text, DateTime
 from data.db_session import SqlAlchemyBase

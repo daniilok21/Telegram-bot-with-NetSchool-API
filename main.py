@@ -43,11 +43,20 @@ dp.include_router(router)
 
 # ЗАПУСК БОТА
 async def main() -> None:
-    session = AiohttpSession(proxy=PROXY_URL)
-    bot = Bot(token=TOKEN, session=session)
-    print("Бот запущен!")
+    try:
+        session = AiohttpSession(proxy=PROXY_URL)
+        bot = Bot(token=TOKEN, session=session)
+        print("Бот запускается...")
 
-    await dp.start_polling(bot)
+        await dp.start_polling(bot)
+    except Exception as e:
+        print(f"Ошибка в запуске бота!: {e}")
+        try:
+            bot = Bot(token=TOKEN)
+            print("Бот запускается без прокси...")
+            await dp.start_polling(bot)
+        except Exception as e:
+            print(f"Ошибка в запуске бота без прокси!: {e}")
 
 
 if __name__ == "__main__":
