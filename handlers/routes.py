@@ -53,4 +53,4 @@ async def about(message: Message):
 @router.message()
 async def talk(message: Message):
     user = new_or_old_user_check_and_create(message.from_user.id)
-    await message.answer(f"{chech_user_is_admin(message.from_user.id)}; your tg_id={message.from_user.id}")
+    await message.answer(f"{chech_user_is_admin(message.from_user.id)}; your tg_id={type(message.from_user.id)}")

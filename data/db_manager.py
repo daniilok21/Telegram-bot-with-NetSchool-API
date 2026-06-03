@@ -9,7 +9,7 @@ def new_or_old_user_check_and_create(telegram_id):
     user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
 
     if not user:
-        is_administrator = User.telegram_id == 5126480415 or User.telegram_id == 2078101725
+        is_administrator = User.telegram_id == '5126480415' or User.telegram_id == '2078101725'
         user = User(
             telegram_id=User.telegram_id,
             is_allowed=is_administrator,
