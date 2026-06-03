@@ -1,4 +1,4 @@
-from . import db_session
+from data import db_session
 from users import User
 
 
