@@ -1,0 +1,50 @@
+# === Системные файлы ===
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# === Настройки редакторов и IDE ===
+# Visual Studio Code
+.vscode/
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains (PyCharm, WebStorm, Idea, PhpStorm и др.)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Сублокноты и прочие редакторы
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+
+# === Секреты и конфигурация среды ===
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.cert
+
+# === Логи и временные файлы ===
+*.log
+logs/
+*.bak
+*.tmp
+*.temp
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd

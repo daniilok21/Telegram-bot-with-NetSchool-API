@@ -7,8 +7,12 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.client.session.aiohttp import AiohttpSession
 
+
 from data import db_session
 from data.users import User
+
+
+from handlers.routes import router
 
 load_dotenv()
 
@@ -16,6 +20,7 @@ TOKEN = getenv("TOKEN")
 PROXY_URL = getenv("PROXY_URL")
 
 dp = Dispatcher()
+
 
 
 def new_or_old_user_check_and_create(telegram_id):
@@ -30,6 +35,9 @@ async def command_start_handler(message: Message) -> None:
     telegram_id = message.from_user.id
     new_or_old_user_check_and_create(telegram_id)
     await message.answer("Hello! I'm a bot created with aiogram.")
+
+# во тута
+dp.include_router(router) 
 
 
 
