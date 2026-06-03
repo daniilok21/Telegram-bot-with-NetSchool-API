@@ -15,6 +15,8 @@ def new_or_old_user_check_and_create(telegram_id):
             is_allowed=is_administrator,
             is_admin=is_administrator
         )
+        db_sess.add(user)
+        db_sess.commit()
     db_sess.close()
     return user
 
