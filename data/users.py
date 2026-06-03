@@ -14,6 +14,9 @@ class User(SqlAlchemyBase):
     is_admin = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=func.now(), nullable=False)
 
+    sessions = sqlalchemy.orm.relationship("Session", back_populates="user", cascade="all, delete-orphan")
+    homework_answers = sqlalchemy.orm.relationship("HomeworkAnswer", back_populates="user", cascade="all, delete-orphan")
+
     def to_dict(self, only=()):
         fields = {
             'id': self.id,
