@@ -53,4 +53,4 @@ async def about(message: Message):
 @router.message()
 async def talk(message: Message):
     user = new_or_old_user_check_and_create(message.from_user.id)
-    await user
+    await message.answer(f"{user}")
