@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from data.db_manager import *
 
 router = Router()
 
@@ -51,5 +52,5 @@ async def about(message: Message):
 
 @router.message()
 async def talk(message: Message):
-    await message.answer(f"Ты написал: {message.text}")
-    await message.answer(f"Ты написал")
+    user = new_or_old_user_check_and_create(message.from_user.id)
+    await user
