@@ -1,5 +1,5 @@
-from data import db_session
-from users import User
+from . import db_session
+from .users import User
 
 
 def new_or_old_user_check_and_create(telegram_id):
