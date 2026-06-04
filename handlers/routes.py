@@ -1,65 +1,90 @@
 from aiogram import Router, F
 from aiogram.filters import Command
+from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, \
     CallbackQuery
+from pyexpat.errors import messages
+
 from data.db_manager import *
 
 router = Router()
 
 
-def keyboard_user():
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="Расписание")],
-            [KeyboardButton(text="Настройки"), KeyboardButton(text="Помощь")],
-        ],
-        resize_keyboard=True,
-    )
-    return keyboard
+class Form(StatesGroup):
+    pass
 
-def keyboard_inline_user():
+
+def keyboard_inline_start():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📚 Посмотреть ДЗ", callback_data="view_ht"), InlineKeyboardButton(text="➕ Добавить ответ на ДЗ", callback_data="add_answer_ht")],
-            [InlineKeyboardButton(text="📖 Посмотреть ответы на ДЗ", callback_data="view_answer_ht"), InlineKeyboardButton(text="📊 Средний балл", callback_data="average_score")],
-            [InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings"), InlineKeyboardButton(text="👤 Авторизоваться", callback_data="log_in")]
+            [InlineKeyboardButton(text="📚 Посмотреть ДЗ", callback_data="view_ht"),
+             InlineKeyboardButton(text="➕ Добавить ответ на ДЗ", callback_data="add_answer_ht")],
+            [InlineKeyboardButton(text="📖 Посмотреть ответы на ДЗ", callback_data="view_answer_ht"),
+             InlineKeyboardButton(text="📊 Средний балл", callback_data="average_score")],
+            [InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings"),
+             InlineKeyboardButton(text="👤 Авторизоваться", callback_data="log_in")]
         ]
     )
     return keyboard
 
 
+def keyboard_inline_view_hw():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📖 Все ответы за сегодня", callback_data="all_hw_today"),
+             InlineKeyboardButton(text="🔍 Поиск по предмету", callback_data="get_hw_subj")],
+        ]
+    )
+    return keyboard
+
+
+@router.callback_query(lambda c: c.data == "all_hw_today")
+async def all_hw_today(callback: CallbackQuery):
+    homework = get_hw(datetime.now().strftime("%Y-%m-%d"))
+    if not homework:
+        await callback.message.answer("На сегодня ответов нет.")
+        await callback.answer()
+        return
+    text = f'Ответы на сегодня: {homework}'
+
+
+
+    await callback.message.answer(text)
+    await callback.answer()
+
+
 @router.callback_query(lambda c: c.data == "view_ht")
-async def view_ht(callback : CallbackQuery):
+async def view_ht(callback: CallbackQuery):
     await callback.message.answer("ЗАГЛУШКА -  Посмотреть ДЗ")
     await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == "add_answer_ht")
-async def add_answer_ht(callback : CallbackQuery):
-    await callback.message.answer("ЗАГЛУШКА -  Добавить ответ на ДЗ")
+async def add_answer_ht(callback: CallbackQuery):
+    await callback.message.answer("Введите дату")
     await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == "view_answer_ht")
-async def view_answer_ht(callback : CallbackQuery):
-    await callback.message.answer("ЗАГЛУШКА -  Посмотреть ответы на ДЗ")
+async def view_answer_ht(callback: CallbackQuery):
+    await callback.message.answer('Выберите действие:', reply_markup=keyboard_inline_view_hw())
     await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == "average_score")
-async def average_score(callback : CallbackQuery):
+async def average_score(callback: CallbackQuery):
     await callback.message.answer("ЗАГЛУШКА -  Средний балл")
     await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == "settings")
-async def settings(callback : CallbackQuery):
+async def settings(callback: CallbackQuery):
     await callback.message.answer("ЗАГЛУШКА -  Настройки")
     await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == "log_in")
-async def log_in(callback : CallbackQuery):
+async def log_in(callback: CallbackQuery):
     await callback.message.answer("ЗАГЛУШКА -  Авторизоваться")
     await callback.answer()
 
@@ -72,7 +97,7 @@ async def start(message: Message):
             "Привет! Я *бот*, _созданный_ с помощью aiogram.\n Пиши /help если нужна помощь",
             parse_mode="Markdown"
         )
-        await message.answer('Выберите действие:', reply_markup=keyboard_inline_user())
+        await message.answer('Выберите действие:', reply_markup=keyboard_inline_start())
     else:
         await message.answer('Вы не можете пользоваться ботом, попросите администраторов включить вас в белый список.')
 
@@ -82,7 +107,7 @@ async def start(message: Message):
 async def help(message: Message):
     await message.answer(
         "Команды:\n<b>/start</b> - начать работу с ботом\n<i>/help</i> - получить помощь<a href='https://google.com'>hello</a>\n/about - узнать о боте",
-        parse_mode="HTML", reply_markup=keyboard_inline_user()  
+        parse_mode="HTML", reply_markup=keyboard_inline_start()
     )
 
 
@@ -131,7 +156,7 @@ async def users(message: Message):
         else:
             text = ''
             for u in all_users:
-                text += f'tg_id={u.telegram_id} | is_allowed={u.is_allowed} | is_admin={u.is_admin}\n'
+                text += f'tg_id={u['telegram_id']} | is_allowed={u['is_allowed']} | is_admin={u['is_admin']}\n'
             await message.answer(text)
     else:
         await message.answer('У вас нет прав администратора для выполнения этой команды!')
