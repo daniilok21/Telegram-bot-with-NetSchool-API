@@ -1,4 +1,5 @@
 from sqlalchemy import false
+from sqlalchemy.testing.suite.test_reflection import users
 
 from . import db_session
 from .users import User
@@ -33,6 +34,40 @@ def check_user_is_allowed(telegram_id):
 
     return is_allowed
 
+
+def give_user_allowed(telegram_id):
+    db_sess = db_session.create_session()
+    user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
+
+    if not user:
+        db_sess.close()
+        return False
+
+    user.is_allowed = True
+
+    db_sess.commit()
+    db_sess.close()
+    return True
+
+
+def deny_user_allowed(telegram_id):
+    db_sess = db_session.create_session()
+    user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
+    if not user:
+        db_sess.close()
+        return False
+
+    user.is_allowed = False
+
+    db_sess.commit()
+    db_sess.close()
+    return True
+
+
+def get_users():
+    db_sess = db_session.create_session()
+    user = db_sess.query(User).all()
+    return user
 
 
 def check_user_is_admin(telegram_id):
