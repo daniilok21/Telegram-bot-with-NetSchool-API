@@ -28,12 +28,15 @@ def keyboard_inline_user():
 
 @router.message(Command("start"))
 async def start(message: Message):
-    await message.answer(
-        "Привет! Я *бот*, _созданный_ с помощью aiogram.\n Пиши /help если нужна помощь",
-        parse_mode="Markdown",
-        reply_markup=keyboard_user()
-    )
-    await message.answer('Выберите действие:', reply_markup=keyboard_inline_user())
+    if check_user_is_allowed(message.from_user.id):
+        await message.answer(
+            "Привет! Я *бот*, _созданный_ с помощью aiogram.\n Пиши /help если нужна помощь",
+            parse_mode="Markdown",
+            reply_markup=keyboard_user()
+        )
+        await message.answer('Выберите действие:', reply_markup=keyboard_inline_user())
+    else:
+        await message.answer('Вы не можете пользоваться ботом, попросите администраторов включить вас в белый список.')
 
 
 @router.message(Command("help"))
