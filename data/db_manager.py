@@ -7,7 +7,7 @@ from .users import User
 from .homework_answers import HomeworkAnswer
 
 
-def add_hw(telegram_id, subject, text=None, files=None):
+def add_hw(telegram_id, subject, date, text=None, files=None):
     db_sess = db_session.create_session()
 
     user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
@@ -17,7 +17,7 @@ def add_hw(telegram_id, subject, text=None, files=None):
     homework = HomeworkAnswer(
         user_id=user.id,
         subject=subject,
-        date=datetime.now().strftime("%Y-%m-%d"),
+        date=date,
         text=text,
     )
     if files:
@@ -26,6 +26,7 @@ def add_hw(telegram_id, subject, text=None, files=None):
     db_sess.commit()
 
     db_sess.close()
+    return True
 
 
 def get_hw(date, subject=None):
@@ -40,14 +41,15 @@ def get_hw(date, subject=None):
 
     result = {}
     for h in homework:
-        user_name = h.user.login if h.user and h.user.login else f"User_{h.user_id}"
+        user_name = h.user.username if h.user and h.user.username else f"User_{h.user_id}"
         if user_name not in result:
-            result[user_name] = h.to_dict()
+            result[user_name] = []
+        result[user_name].append(h.to_dict())
     db_sess.close()
     return result
 
 
-def new_or_old_user_check_and_create(telegram_id):
+def new_or_old_user_check_and_create(telegram_id, username):
     db_sess = db_session.create_session()
     user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
 
@@ -55,11 +57,16 @@ def new_or_old_user_check_and_create(telegram_id):
         is_administrator = telegram_id == 5126480415 or telegram_id == 2078101725
         user = User(
             telegram_id=telegram_id,
+            username=username,
             is_allowed=is_administrator,
             is_admin=is_administrator
         )
         db_sess.add(user)
         db_sess.commit()
+    else:
+        if user.username != username and username:
+            user.username = username
+            db_sess.commit()
     db_sess.close()
     return user
 

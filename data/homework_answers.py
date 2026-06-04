@@ -1,6 +1,5 @@
-from importlib.metadata import files
-
 import sqlalchemy.orm
+from datetime import datetime
 from sqlalchemy import func, Column, Integer, String, Boolean, Float, BigInteger, Text, DateTime, ForeignKey
 from data.db_session import SqlAlchemyBase
 import json
@@ -15,7 +14,7 @@ class HomeworkAnswer(SqlAlchemyBase):
     date = Column(String(10), nullable=False, index=True)
     text = Column(Text, nullable=True)
     files = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(DateTime, default=datetime.now(), nullable=False)
 
     user = sqlalchemy.orm.relationship("User", back_populates="homework_answers")
 

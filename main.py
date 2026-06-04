@@ -7,7 +7,6 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.client.session.aiohttp import AiohttpSession
 
-
 from data import db_session
 from data.users import User
 
