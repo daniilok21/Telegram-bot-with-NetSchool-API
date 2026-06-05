@@ -79,7 +79,7 @@ def keyboard_after_get_hw():
 
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_date)
 async def calendar_logic(callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext):
-    calendar = SimpleCalendar(locale='RU')
+    calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
     if selected:
@@ -93,7 +93,7 @@ async def calendar_logic(callback: CallbackQuery, callback_data: SimpleCalendarC
 
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_hw_date)
 async def calendar_get_hw_logic(callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext):
-    calendar = SimpleCalendar(locale='RU')
+    calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
     if selected:
@@ -187,7 +187,7 @@ async def save_hw(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(lambda c: c.data == "get_hw_date")
 async def get_hw_date(callback: CallbackQuery, state: FSMContext):
-    calendar = SimpleCalendar(locale='ru_RU')
+    calendar = SimpleCalendar()
     await state.set_state(Form.waiting_get_hw_date)
     await callback.message.answer(
         "📅 Выберите дату для просмотра домашних заданий:",
@@ -228,7 +228,7 @@ async def view_ht(callback: CallbackQuery):
 
 @router.callback_query(lambda c: c.data == "add_answer_ht")
 async def add_answer_ht(callback: CallbackQuery, state: FSMContext):
-    calendar = SimpleCalendar(locale='ru_RU')
+    calendar = SimpleCalendar()
     await state.set_state(Form.waiting_date)
     await callback.message.answer("📅 Выберите дату домашнего задания:", reply_markup=await calendar.start_calendar())
     await callback.answer()
