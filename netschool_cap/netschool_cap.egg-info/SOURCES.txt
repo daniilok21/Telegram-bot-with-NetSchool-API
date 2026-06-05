@@ -1,0 +1,13 @@
+pyproject.toml
+netschool_cap/__init__.py
+netschool_cap/client.py
+netschool_cap/exceptions.py
+netschool_cap/http.py
+netschool_cap/models.py
+netschool_cap/py.typed
+netschool_cap/regions.py
+netschool_cap.egg-info/PKG-INFO
+netschool_cap.egg-info/SOURCES.txt
+netschool_cap.egg-info/dependency_links.txt
+netschool_cap.egg-info/requires.txt
+netschool_cap.egg-info/top_level.txt
