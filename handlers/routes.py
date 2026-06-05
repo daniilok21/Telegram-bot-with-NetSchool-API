@@ -21,6 +21,7 @@ class Form(StatesGroup):
     waiting_text = State()
     selected_date = State()
     answer = State()
+    waiting_get_hw_date = State()
 
 
 def keyboard_inline_start():
@@ -41,7 +42,7 @@ def keyboard_inline_view_hw():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="📖 Все ответы на завтра", callback_data="all_hw_tomorrow"),
-             InlineKeyboardButton(text="🔍 Поиск по предмету", callback_data="get_hw_subj")],
+             InlineKeyboardButton(text="🔍 Поиск по дате", callback_data="get_hw_date")],
         ]
     )
     return keyboard
@@ -65,17 +66,63 @@ def keyboard_reply_help():
     )
     return keyboard
 
+
+def keyboard_after_get_hw():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Назад", callback_data='back'),
+             InlineKeyboardButton(text="🔍 Поиск по дате", callback_data="get_hw_date")],
+        ]
+    )
+    return keyboard
+
+
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_date)
 async def calendar_logic(callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext):
-    calendar = SimpleCalendar()
+    calendar = SimpleCalendar(locale='RU')
     selected, date = await calendar.process_selection(callback, callback_data)
 
     if selected:
         await state.update_data(selected_date=date.strftime("%d.%m.%Y"))
         await callback.message.answer(
-            f"Выбрана дата: {date.strftime('%d.%m.%Y')}\n\nТеперь напишите текст ответа на домашнее задание. Вы сможете выбрать файлы позже:"
+            f"Выбрана дата: {date.strftime('%d.%m.%Y')}\n\nТеперь напишите текст ответа на домашнее задание. Вы сможете выбрать файлы позже.\nЕсли не хотите добавлять текст напишите /skip"
         )
         await state.set_state(Form.waiting_homework_answer)
+    await callback.answer()
+
+
+@router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_hw_date)
+async def calendar_get_hw_logic(callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext):
+    calendar = SimpleCalendar(locale='RU')
+    selected, date = await calendar.process_selection(callback, callback_data)
+
+    if selected:
+        selected_date = date.strftime("%d.%m.%Y")
+        homework = get_hw(selected_date)
+        if homework:
+            await callback.message.answer(
+                f"Вот ответы на {selected_date}:\n\n"
+            )
+            text = ''
+            for h in homework:
+                for answ in homework[h]:
+                    text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}:\nпо предмету: {answ['subject']}:"
+                    if text:
+                        text += f"{answ['text']}"
+                    await callback.message.answer(text)
+                    for doc in answ['files']:
+                        if doc['type'] == 'photo':
+                            await callback.message.answer_photo(doc['file_id'],
+                                                                caption=f"Фото от @{h} по предмету: {answ['subject']}")
+                        elif doc['type'] == 'document':
+                            await callback.message.answer_document(document=doc['file_id'],
+                                                                   caption=f"Документ от @{h} по предмету {answ['subject']}:\n")
+                    text += '\n\n'
+                    text = ''
+        else:
+            await callback.message.answer(f'Ответов на {selected_date} нет.')
+    await state.clear()
+    await callback.message.answer('Выберите действие:', reply_markup=keyboard_after_get_hw())
     await callback.answer()
 
 
@@ -84,7 +131,8 @@ async def homework_answer(message: Message, state: FSMContext):
     data = await state.get_data()
     selected_date = data.get("selected_date")
     answer = message.text
-    await state.update_data(selected_date=selected_date, answer=answer, files=[])
+    if answer != '/skip':
+        await state.update_data(selected_date=selected_date, answer=answer, files=[])
     await message.answer(f"Добавьте файлы. Когда закончите, нажмите кнопку 'Завершить'.", reply_markup=keyboard_save())
     await state.set_state(Form.waiting_files)
 
@@ -109,26 +157,43 @@ async def get_files(message: Message, state: FSMContext):
     await state.update_data(files=files)
 
 
+@router.callback_query(lambda c: c.data == "back")
+async def back(callback: CallbackQuery, state: FSMContext):
+    await callback.message.answer('Выберите действие:', reply_markup=keyboard_inline_start())
+    await state.clear()
+
 
 @router.callback_query(lambda c: c.data == "save_hw")
 async def save_hw(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     date = data.get("selected_date")
+    text = data.get('answer')
     files = data.get('files')
-    if files:
-        files_res = [file['file_id'] for file in files]
-    else:
-        files_res = None
+    print()
     if date:
-        if add_hw(callback.from_user.id, 'qwerty', date, data.get('answer'), files):
-            await callback.message.answer(f'Ответ сохранен на дату\n{date}', reply_markup=keyboard_inline_start())
+        if files or text:
+            if add_hw(callback.from_user.id, 'qwerty', date, text, files):
+                await callback.message.answer(f'Ответ сохранен на дату\n{date}')
+            else:
+                await callback.message.answer(f'Ошибка!')
         else:
-            await callback.message.answer(f'Ошибка!')
+            await callback.message.answer("Ошибка! Нельзя сохранять пустой ответ!")
     else:
         await callback.message.answer('Ошибка!')
+    await callback.message.answer('Выберите действие:', reply_markup=keyboard_inline_start())
+    await callback.answer()
     await state.clear()
 
 
+@router.callback_query(lambda c: c.data == "get_hw_date")
+async def get_hw_date(callback: CallbackQuery, state: FSMContext):
+    calendar = SimpleCalendar(locale='ru_RU')
+    await state.set_state(Form.waiting_get_hw_date)
+    await callback.message.answer(
+        "📅 Выберите дату для просмотра домашних заданий:",
+        reply_markup=await calendar.start_calendar()
+    )
+    await callback.answer()
 
 @router.callback_query(lambda c: c.data == "all_hw_tomorrow")
 async def all_hw_tomorrow(callback: CallbackQuery):
@@ -140,9 +205,9 @@ async def all_hw_tomorrow(callback: CallbackQuery):
     text = f'Ответы на завтра:\n\n'
     for h in homework:
         for answ in homework[h]:
-            print(answ)
-            text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}:\nпо предмету: {answ['subject']}"
-            text += f"{answ['text']}"
+            text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}:\nпо предмету {answ['subject']}:"
+            if text:
+                text += f"{answ['text']}"
             await callback.message.answer(text)
             for doc in answ['files']:
                 if doc['type'] == 'photo':
