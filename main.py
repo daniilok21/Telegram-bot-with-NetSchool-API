@@ -7,7 +7,6 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.client.session.aiohttp import AiohttpSession
 
-
 from data import db_session
 from data.users import User
 
@@ -20,16 +19,7 @@ TOKEN = getenv("TOKEN")
 PROXY_URL = getenv("PROXY_URL")
 
 dp = Dispatcher()
-
-
-
-def new_or_old_user_check_and_create(telegram_id):
-    db_sess = db_session.create_session()
-    user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
-    print(user)
-    db_sess.close()
-# во тута
-dp.include_router(router) 
+dp.include_router(router)
 
 # ЗАПУСК БОТА
 async def main() -> None:
