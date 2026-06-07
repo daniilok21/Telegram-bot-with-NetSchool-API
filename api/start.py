@@ -36,9 +36,9 @@ class School:
                 await self.ns.import_session(decrypt(session_token))
                 self.active = True
                 print("вошел по сессии")
-                return  # выходим, логиниться не надо
+                return  
             except Exception:
-                pass  # сессия устарела — логинимся заново
+                pass  
 
         await self.ns.login_via_gosuslugi(
             esia_login=self.log,
