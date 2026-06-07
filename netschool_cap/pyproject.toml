@@ -6,3 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "netschool_cap"
 version = "1.0.0"
 dependencies = ["httpx", "websockets", "qrcode"]
+
+[tool.setuptools]
+packages = ["netschool_cap"]
+package-dir = {"" = "."}

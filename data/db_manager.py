@@ -1,7 +1,8 @@
 from . import db_session
 from .users import User
 from .homework_answers import HomeworkAnswer
-
+from .sessions import Session
+from .encoder import *
 
 def add_hw(telegram_id, subject, date, text=None, files=None):
     db_sess = db_session.create_session()
@@ -65,6 +66,19 @@ def new_or_old_user_check_and_create(telegram_id, username):
             db_sess.commit()
     db_sess.close()
     return user
+    
+def create_check_netschool_session(user_id, session):
+    db_sess = db_session.create_session()
+    school = db_sess.query(Session).filter(Session.user_id == user_id).first()
+    if not school:
+        school = Session(
+            user_id = user_id,
+            session_token = encrypt(session)
+        )
+
+        db_sess.add(school)
+        db_sess.commit()
+
 
 
 def check_user_is_allowed(telegram_id):

@@ -1,6 +1,7 @@
+from dotenv import load_dotenv
+load_dotenv()
 import asyncio
 from os import getenv
-from dotenv import load_dotenv
 
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
@@ -13,13 +14,14 @@ from data.users import User
 
 from handlers.routes import router
 
-load_dotenv()
+
 
 TOKEN = getenv("TOKEN")
 PROXY_URL = getenv("PROXY_URL")
 
 dp = Dispatcher()
 dp.include_router(router)
+
 
 # ЗАПУСК БОТА
 async def main() -> None:

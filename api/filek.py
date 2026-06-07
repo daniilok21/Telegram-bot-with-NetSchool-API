@@ -1,3 +1,0 @@
-LOGIN=""  """ номер """
-PASSWORD=""
-SCHOOL=""

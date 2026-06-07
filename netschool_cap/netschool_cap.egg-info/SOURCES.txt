@@ -1,4 +1,11 @@
 pyproject.toml
+./netschool_cap/__init__.py
+./netschool_cap/client.py
+./netschool_cap/exceptions.py
+./netschool_cap/http.py
+./netschool_cap/models.py
+./netschool_cap/py.typed
+./netschool_cap/regions.py
 netschool_cap/__init__.py
 netschool_cap/client.py
 netschool_cap/exceptions.py

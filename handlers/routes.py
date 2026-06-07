@@ -1,84 +1,30 @@
 from datetime import timedelta, datetime
 from importlib.resources import files
-
+import asyncio
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, \
-    CallbackQuery, ReplyKeyboardRemove
+from aiogram.types import (
+    Message,
+    CallbackQuery,
+    ReplyKeyboardRemove,
+)
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
 from data.db_manager import *
-
+from .keyboards import *
+from .forms import *
+from api.start import School
+#смс пользователей id - message
+sms_feature = {} 
 router = Router()
-
-
-class Form(StatesGroup):
-    waiting_date = State()
-    waiting_homework_answer = State()
-    waiting_files = State()
-    waiting_text = State()
-    selected_date = State()
-    answer = State()
-    waiting_get_hw_date = State()
-
-
-def keyboard_inline_start():
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📚 Посмотреть ДЗ", callback_data="view_ht"),
-             InlineKeyboardButton(text="➕ Добавить ответ на ДЗ", callback_data="add_answer_ht")],
-            [InlineKeyboardButton(text="📖 Посмотреть ответы на ДЗ", callback_data="view_answer_ht"),
-             InlineKeyboardButton(text="📊 Средний балл", callback_data="average_score")],
-            [InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings"),
-             InlineKeyboardButton(text="👤 Авторизоваться", callback_data="log_in")]
-        ]
-    )
-    return keyboard
-
-
-def keyboard_inline_view_hw():
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📖 Все ответы на завтра", callback_data="all_hw_tomorrow"),
-             InlineKeyboardButton(text="🔍 Поиск по дате", callback_data="get_hw_date")],
-        ]
-    )
-    return keyboard
-
-
-def keyboard_save():
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Завершить", callback_data="save_hw")]
-        ]
-    )
-    return keyboard
-
-
-def keyboard_reply_help():
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text='Помощь')]
-        ],
-        resize_keyboard=True
-    )
-    return keyboard
-
-
-def keyboard_after_get_hw():
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data='back'),
-             InlineKeyboardButton(text="🔍 Поиск по дате", callback_data="get_hw_date")],
-        ]
-    )
-    return keyboard
-
+sessions = {}
 
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_date)
-async def calendar_logic(callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext):
+async def calendar_logic(
+    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+):
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
@@ -92,7 +38,9 @@ async def calendar_logic(callback: CallbackQuery, callback_data: SimpleCalendarC
 
 
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_hw_date)
-async def calendar_get_hw_logic(callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext):
+async def calendar_get_hw_logic(
+    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+):
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
@@ -100,29 +48,33 @@ async def calendar_get_hw_logic(callback: CallbackQuery, callback_data: SimpleCa
         selected_date = date.strftime("%d.%m.%Y")
         homework = get_hw(selected_date)
         if homework:
-            await callback.message.answer(
-                f"Вот ответы на {selected_date}:\n\n"
-            )
-            text = ''
+            await callback.message.answer(f"Вот ответы на {selected_date}:\n\n")
+            text = ""
             for h in homework:
                 for answ in homework[h]:
                     text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}:\nпо предмету: {answ['subject']}:"
                     if text:
                         text += f"{answ['text']}"
                     await callback.message.answer(text)
-                    for doc in answ['files']:
-                        if doc['type'] == 'photo':
-                            await callback.message.answer_photo(doc['file_id'],
-                                                                caption=f"Фото от @{h} по предмету: {answ['subject']}")
-                        elif doc['type'] == 'document':
-                            await callback.message.answer_document(document=doc['file_id'],
-                                                                   caption=f"Документ от @{h} по предмету {answ['subject']}:\n")
-                    text += '\n\n'
-                    text = ''
+                    for doc in answ["files"]:
+                        if doc["type"] == "photo":
+                            await callback.message.answer_photo(
+                                doc["file_id"],
+                                caption=f"Фото от @{h} по предмету: {answ['subject']}",
+                            )
+                        elif doc["type"] == "document":
+                            await callback.message.answer_document(
+                                document=doc["file_id"],
+                                caption=f"Документ от @{h} по предмету {answ['subject']}:\n",
+                            )
+                    text += "\n\n"
+                    text = ""
         else:
-            await callback.message.answer(f'Ответов на {selected_date} нет.')
+            await callback.message.answer(f"Ответов на {selected_date} нет.")
     await state.clear()
-    await callback.message.answer('Выберите действие:', reply_markup=keyboard_after_get_hw())
+    await callback.message.answer(
+        "Выберите действие:", reply_markup=keyboard_after_get_hw()
+    )
     await callback.answer()
 
 
@@ -131,17 +83,19 @@ async def homework_answer(message: Message, state: FSMContext):
     data = await state.get_data()
     selected_date = data.get("selected_date")
     answer = message.text
-    if answer != '/skip':
+    if answer != "/skip":
         await state.update_data(selected_date=selected_date, answer=answer, files=[])
-    await message.answer(f"Добавьте файлы. Когда закончите, нажмите кнопку 'Завершить'.", reply_markup=keyboard_save())
+    await message.answer(
+        f"Добавьте файлы. Когда закончите, нажмите кнопку 'Завершить'.",
+        reply_markup=keyboard_save(),
+    )
     await state.set_state(Form.waiting_files)
-
 
 
 @router.message(Form.waiting_files, F.photo | F.document)
 async def get_files(message: Message, state: FSMContext):
     data = await state.get_data()
-    files = data.get('files', [])
+    files = data.get("files", [])
     if message.photo:
         file_id = message.photo[-1].file_id
         files.append({"file_id": file_id, "type": "photo"})
@@ -150,7 +104,7 @@ async def get_files(message: Message, state: FSMContext):
         file_id = message.document.file_id
         file_name = message.document.file_name
         if not file_name:
-            file_name = 'Document'
+            file_name = "Document"
         files.append({"file_id": file_id, "type": "document", "name": file_name})
         await message.answer(f"Документ '{file_name}' добавлен! Всего: {len(files)}")
 
@@ -159,7 +113,9 @@ async def get_files(message: Message, state: FSMContext):
 
 @router.callback_query(lambda c: c.data == "back")
 async def back(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer('Выберите действие:', reply_markup=keyboard_inline_start())
+    await callback.message.answer(
+        "Выберите действие:", reply_markup=keyboard_inline_start()
+    )
     await state.clear()
 
 
@@ -167,20 +123,22 @@ async def back(callback: CallbackQuery, state: FSMContext):
 async def save_hw(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     date = data.get("selected_date")
-    text = data.get('answer')
-    files = data.get('files')
+    text = data.get("answer")
+    files = data.get("files")
     print()
     if date:
         if files or text:
-            if add_hw(callback.from_user.id, 'qwerty', date, text, files):
-                await callback.message.answer(f'Ответ сохранен на дату\n{date}')
+            if add_hw(callback.from_user.id, "qwerty", date, text, files):
+                await callback.message.answer(f"Ответ сохранен на дату\n{date}")
             else:
-                await callback.message.answer(f'Ошибка!')
+                await callback.message.answer(f"Ошибка!")
         else:
             await callback.message.answer("Ошибка! Нельзя сохранять пустой ответ!")
     else:
-        await callback.message.answer('Ошибка!')
-    await callback.message.answer('Выберите действие:', reply_markup=keyboard_inline_start())
+        await callback.message.answer("Ошибка!")
+    await callback.message.answer(
+        "Выберите действие:", reply_markup=keyboard_inline_start()
+    )
     await callback.answer()
     await state.clear()
 
@@ -191,9 +149,10 @@ async def get_hw_date(callback: CallbackQuery, state: FSMContext):
     await state.set_state(Form.waiting_get_hw_date)
     await callback.message.answer(
         "📅 Выберите дату для просмотра домашних заданий:",
-        reply_markup=await calendar.start_calendar()
+        reply_markup=await calendar.start_calendar(),
     )
     await callback.answer()
+
 
 @router.callback_query(lambda c: c.data == "all_hw_tomorrow")
 async def all_hw_tomorrow(callback: CallbackQuery):
@@ -202,21 +161,29 @@ async def all_hw_tomorrow(callback: CallbackQuery):
         await callback.message.answer("На завтра ответов нет.")
         await callback.answer()
         return
-    text = f'Ответы на завтра:\n\n'
+    text = f"Ответы на завтра:\n\n"
     for h in homework:
         for answ in homework[h]:
             text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}:\nпо предмету {answ['subject']}:"
             if text:
                 text += f"{answ['text']}"
             await callback.message.answer(text)
-            for doc in answ['files']:
-                if doc['type'] == 'photo':
-                    await callback.message.answer_photo(doc['file_id'], caption=f"Фото от @{h} по предмету: {answ['subject']}")
-                elif doc['type'] == 'document':
-                    await callback.message.answer_document(document=doc['file_id'], caption=f"Документ от @{h} по предмету {answ['subject']}:\n")
-            text += '\n\n'
-            text = ''
-    await callback.message.answer('Выберите действие:', reply_markup=keyboard_inline_start())
+            for doc in answ["files"]:
+                if doc["type"] == "photo":
+                    await callback.message.answer_photo(
+                        doc["file_id"],
+                        caption=f"Фото от @{h} по предмету: {answ['subject']}",
+                    )
+                elif doc["type"] == "document":
+                    await callback.message.answer_document(
+                        document=doc["file_id"],
+                        caption=f"Документ от @{h} по предмету {answ['subject']}:\n",
+                    )
+            text += "\n\n"
+            text = ""
+    await callback.message.answer(
+        "Выберите действие:", reply_markup=keyboard_inline_start()
+    )
     await callback.answer()
 
 
@@ -230,13 +197,18 @@ async def view_ht(callback: CallbackQuery):
 async def add_answer_ht(callback: CallbackQuery, state: FSMContext):
     calendar = SimpleCalendar()
     await state.set_state(Form.waiting_date)
-    await callback.message.answer("📅 Выберите дату домашнего задания:", reply_markup=await calendar.start_calendar())
+    await callback.message.answer(
+        "📅 Выберите дату домашнего задания:",
+        reply_markup=await calendar.start_calendar(),
+    )
     await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == "view_answer_ht")
 async def view_answer_ht(callback: CallbackQuery):
-    await callback.message.answer('Выберите действие:', reply_markup=keyboard_inline_view_hw())
+    await callback.message.answer(
+        "Выберите действие:", reply_markup=keyboard_inline_view_hw()
+    )
     await callback.answer()
 
 
@@ -251,24 +223,108 @@ async def settings(callback: CallbackQuery):
     await callback.message.answer("ЗАГЛУШКА -  Настройки")
     await callback.answer()
 
-
+############################################        АВТОРИЗАЦИЯ В НЕТСКУЛ
 @router.callback_query(lambda c: c.data == "log_in")
-async def log_in(callback: CallbackQuery):
-    await callback.message.answer("ЗАГЛУШКА -  Авторизоваться")
+async def log_in(callback: CallbackQuery, state: FSMContext):
+    try:
+        school = sessions.get(callback.from_user.id)
+        if not school:
+            school = School(login="", password="", user_id=callback.from_user.id)
+            sessions[callback.from_user.id] = school
+        if not school.active:
+            await callback.message.answer("Авторизация на сайт netschool\nВведите номер телефона(+7)")
+            await state.set_state(Auth.login)
+            await callback.answer()
+        else:
+            await callback.message.answer("Вы уже авторизованы!", reply_markup=keyboard_logout())
+        
+    except Exception as e:
+        await callback.message.answer("/start")
     await callback.answer()
+
+@router.message(Auth.login, F.text)
+async def netschool_login(message: Message, state: FSMContext):
+    await state.update_data(login=message.text)
+
+    await message.answer("Отлично!\nВведите пароль")
+    await state.set_state(Auth.password)
+    
+@router.message(Auth.password, F.text)
+async def netschool_password(message: Message, state: FSMContext):
+    await state.update_data(password=message.text)
+    data = await state.get_data()
+    login = data["login"]
+    password = data["password"]
+    await message.answer(f"Ваши данные:\nlogin - {login}\npassword - {password}")
+
+    # получили месседж и теперь создаем коробку, в словарик кладем [ид месседжа и значение]
+    #  коробка сущесвует но значение пустое
+
+      #в библиотеке netchool_cap есть специальный метод otp_callback, он работает по принципу если он не None
+      #  то смс сообщения нужно вводить не в консоль а через свою функцию
+    async def sms_user(mfa, mfa_info):
+        future = asyncio.get_event_loop().create_future() 
+        sms_feature[message.from_user.id] = future 
+        await message.answer("Введите sms")
+        await state.set_state(Auth.sms)
+        return await future
+  # sms_user мы передаем в сам класс, функция отрабатывает и отдает коробку уже библиотеке  
+    
+    school = sessions[message.from_user.id]
+    school.log = login
+    school.password = password
+    school.otp_callback = sms_user
+    
+    async def log_school():
+        try:
+            await school.login()
+            sessions[message.from_user.id] = school
+            await message.answer("успешно вошел", reply_markup=keyboard_logout())
+        except Exception as e:
+            await message.answer(f"{e}")
+            
+    asyncio.create_task(log_school())
+@router.message(F.text == "Разлогин")
+async def logout_sch(message: Message, state: FSMContext):
+    print(sessions)
+    if message.from_user.id not in sessions:
+        await message.answer(text="Авторизуйтесь")
+    else:
+        print("разлогин")
+        await state.clear()
+        school = sessions[message.from_user.id]
+        await school.logout()
+        del sessions[message.from_user.id]
+        await message.answer(text="Успешный разлогин")
+
+@router.message(Auth.sms, F.text)
+async def netschool_sms(message: Message, state: FSMContext):
+    await state.update_data(sms=message.text)
+    data = await state.get_data()
+    sms = data["sms"]
+    
+    # теперь мы получили смс и заполняем коробку(значение в коробке теперь не пустое)
+    future = sms_feature[message.from_user.id]
+    if future and not future.done():
+        future.set_result(sms)    
+##################################################################
 
 
 @router.message(Command("start"))
 async def start(message: Message):
+    school = School(login="", password="", user_id=message.from_user.id)
+    sessions[message.from_user.id] = school
     new_or_old_user_check_and_create(message.from_user.id, message.from_user.username)
     if check_user_is_allowed(message.from_user.id):
         await message.answer(
             "Привет! Я *бот*, _созданный_ с помощью aiogram.\n Пиши /help если нужна помощь",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
         )
-        await message.answer('Выберите действие:', reply_markup=keyboard_inline_start())
+        await message.answer("Выберите действие:", reply_markup=keyboard_inline_start())
     else:
-        await message.answer('Вы не можете пользоваться ботом, попросите администраторов включить вас в белый список.')
+        await message.answer(
+            "Вы не можете пользоваться ботом, попросите администраторов включить вас в белый список."
+        )
 
 
 @router.message(Command("help"))
@@ -276,7 +332,8 @@ async def start(message: Message):
 async def help(message: Message):
     await message.answer(
         "Команды:\n<b>/start</b> - начать работу с ботом\n<i>/help</i> - получить помощь<a href='https://google.com'>hello</a>\n/about - узнать о боте",
-        parse_mode="HTML",reply_markup=ReplyKeyboardRemove()
+        parse_mode="HTML",
+        reply_markup=ReplyKeyboardRemove(),
     )
 
 
@@ -291,13 +348,17 @@ async def allow(message: Message):
         command = message.text.strip().split()
         if len(command) == 2 and command[-1].isdigit():
             if give_user_allowed(command[-1]):
-                await message.answer(f'Успешно, пользователь с telegram_id={command[-1]} добавлен в белый список!')
+                await message.answer(
+                    f"Успешно, пользователь с telegram_id={command[-1]} добавлен в белый список!"
+                )
             else:
-                await message.answer(f'Ошибка!')
+                await message.answer(f"Ошибка!")
         else:
             await message.answer("Некорректная команда! Пример: /allow 5126480415")
     else:
-        await message.answer('У вас нет прав администратора для выполнения этой команды!')
+        await message.answer(
+            "У вас нет прав администратора для выполнения этой команды!"
+        )
 
 
 @router.message(Command("deny"))
@@ -307,13 +368,16 @@ async def deny(message: Message):
         if len(command) == 2 and command[-1].isdigit():
             if deny_user_allowed(command[-1]):
                 await message.answer(
-                    f'Успешно, пользователь с telegram_id={command[-1]} удален из белого списка!')
+                    f"Успешно, пользователь с telegram_id={command[-1]} удален из белого списка!"
+                )
             else:
-                await message.answer(f'Ошибка!')
+                await message.answer(f"Ошибка!")
         else:
             await message.answer("Некорректная команда! Пример: /deny 5126480415")
     else:
-        await message.answer('У вас нет прав администратора для выполнения этой команды!')
+        await message.answer(
+            "У вас нет прав администратора для выполнения этой команды!"
+        )
 
 
 @router.message(Command("users"))
@@ -321,16 +385,18 @@ async def users(message: Message):
     if check_user_is_admin(message.from_user.id):
         all_users = get_users()
         if not all_users:
-            await message.answer('Список пользователей пуст!')
+            await message.answer("Список пользователей пуст!")
         else:
-            text = ''
+            text = ""
             for u in all_users:
-                text += f'tg_id={u['telegram_id']} | is_allowed={u['is_allowed']} | is_admin={u['is_admin']}\n'
+                text += f"tg_id={u['telegram_id']} | is_allowed={u['is_allowed']} | is_admin={u['is_admin']}\n"
             await message.answer(text)
     else:
-        await message.answer('У вас нет прав администратора для выполнения этой команды!')
+        await message.answer(
+            "У вас нет прав администратора для выполнения этой команды!"
+        )
 
 
 @router.message()
 async def talk(message: Message):
-    await message.answer('Неизвестная команда!', reply_markup=keyboard_reply_help())
+    await message.answer("Неизвестная команда!", reply_markup=keyboard_reply_help())
