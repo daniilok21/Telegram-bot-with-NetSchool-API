@@ -296,7 +296,7 @@ async def log_in(callback: CallbackQuery, state: FSMContext):
             school = School(login="", password="", user_id=callback.from_user.id)
             sessions[callback.from_user.id] = school
         if not school.active:
-            await callback.message.answer("Авторизация на сайт netschool\nВведите номер телефона(+7)")
+            await callback.message.answer("Авторизация на сайт netschool\nВведите номер телефона(+7)", reply_markup=keyboard_back())
             await state.set_state(Auth.login)
             await callback.answer()
         else:
@@ -308,9 +308,15 @@ async def log_in(callback: CallbackQuery, state: FSMContext):
 
 @router.message(Auth.login, F.text)
 async def netschool_login(message: Message, state: FSMContext):
-    await state.update_data(login=message.text)
+    phone = message.text.strip()
 
-    await message.answer("Отлично!\nВведите пароль")
+    if not (phone.startswith("+7") and len(phone) == 12 and phone[1:].isdigit()):
+        await message.answer("Введите корректный номер телефона.\n""Пример: +79991234567", reply_markup=keyboard_back())
+        return
+
+    await state.update_data(login=phone)
+
+    await message.answer("Отлично!\nВведите пароль:", reply_markup=keyboard_back())
     await state.set_state(Auth.password)
     
 @router.message(Auth.password, F.text)
@@ -319,7 +325,8 @@ async def netschool_password(message: Message, state: FSMContext):
     data = await state.get_data()
     login = data["login"]
     password = data["password"]
-    await message.answer(f"Ваши данные:\nlogin - {login}\npassword - {password}")
+
+    await message.delete()
 
     # получили месседж и теперь создаем коробку, в словарик кладем [ид месседжа и значение]
     #  коробка сущесвует но значение пустое
@@ -329,7 +336,7 @@ async def netschool_password(message: Message, state: FSMContext):
     async def sms_user(mfa, mfa_info):
         future = asyncio.get_event_loop().create_future() 
         sms_feature[message.from_user.id] = future 
-        await message.answer("Введите sms")
+        await message.answer("Введите sms:", reply_markup=keyboard_back())
         await state.set_state(Auth.sms)
         return await future
   # sms_user мы передаем в сам класс, функция отрабатывает и отдает коробку уже библиотеке  

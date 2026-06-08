@@ -106,6 +106,16 @@ def keyboard_after_get_ht_student():
     )
     return keyboard
 
+def keyboard_back():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Назад", callback_data="back"),
+            ],
+        ]
+    )
+    return keyboard
+
 def keyboard_after_get_ht():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
