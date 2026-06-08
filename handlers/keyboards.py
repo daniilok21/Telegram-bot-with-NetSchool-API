@@ -48,6 +48,22 @@ def keyboard_inline_view_hw():
     return keyboard
 
 
+def keyboard_inline_view_ht():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="📖 ДЗ через NetSchool", callback_data="get_ht_netschool"
+                ),
+                InlineKeyboardButton(
+                    text="👤 ДЗ от учеников", callback_data="get_ht_students"
+                ),
+            ],
+        ]
+    )
+    return keyboard
+
+
 def keyboard_save():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -77,12 +93,38 @@ def keyboard_after_get_hw():
     )
     return keyboard
 
+def keyboard_after_get_ht_student():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Назад", callback_data="back"),
+                InlineKeyboardButton(
+                    text="🔍 Поиск по дате ДЗ от пользователей", callback_data="get_ht_date_student"
+                ),
+            ],
+        ]
+    )
+    return keyboard
+
+def keyboard_after_get_ht():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Назад", callback_data="back"),
+                InlineKeyboardButton(
+                    text="🔍 Поиск по дате в NetSchool", callback_data="get_ht_date"
+                ),
+            ],
+        ]
+    )
+    return keyboard
+
 
 def keyboard_gosuslugi():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Назад", callback_data="back_to_check"),
-             InlineKeyboardButton(text="Авторизоваться", callback_data="go_to_auth")],
+             InlineKeyboardButton(text="👤Авторизоваться", callback_data="go_to_auth")],
         ]
     )
     return keyboard

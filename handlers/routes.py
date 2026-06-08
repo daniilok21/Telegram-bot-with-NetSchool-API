@@ -1,3 +1,4 @@
+from calendar import calendar
 from datetime import timedelta, datetime
 from importlib.resources import files
 import asyncio
@@ -74,6 +75,53 @@ async def calendar_get_hw_logic(
     await state.clear()
     await callback.message.answer(
         "Выберите действие:", reply_markup=keyboard_after_get_hw()
+    )
+    await callback.answer()
+
+
+@router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_ht_date_netschool)
+async def calendar_get_ht_netschool_logic(
+    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+):
+    calendar = SimpleCalendar()
+    selected, date = await calendar.process_selection(callback, callback_data)
+
+    if selected:
+        selected_date = date.strftime("%d.%m.%Y")
+        hometask = "get_ht нужен в метод calendar_get_ht_netschool_logic" # get_ht(selected_date)
+        await callback.message.answer("ВНИМАНИЕ! Информация актуальна на 'во сколько'. База данных загружена 'кем-то'.")
+        if hometask:
+            await callback.message.answer(f"ДЗ на {selected_date}:\n\n")
+            await callback.message.answer(f"{hometask}")
+        else:
+            await callback.message.answer(f"Дз с netschool на {selected_date} нет.")
+    await state.clear()
+    await callback.message.answer(
+        "Выберите действие:", reply_markup=keyboard_after_get_ht()
+    )
+    await callback.answer()
+
+
+
+
+@router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_ht_date_student)
+async def calendar_get_ht_student_logic(
+    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+):
+    calendar = SimpleCalendar()
+    selected, date = await calendar.process_selection(callback, callback_data)
+
+    if selected:
+        selected_date = date.strftime("%d.%m.%Y")
+        hometask = "get_ht нужен в метод calendar_get_ht_student_student" # get_ht(selected_date)
+        if hometask:
+            await callback.message.answer(f"ДЗ на {selected_date}:\n\n")
+            await callback.message.answer(f"{hometask}")
+        else:
+            await callback.message.answer(f"ДЗ от пользователей на {selected_date} нет.")
+    await state.clear()
+    await callback.message.answer(
+        "Выберите действие:", reply_markup=keyboard_after_get_ht_student()
     )
     await callback.answer()
 
@@ -189,7 +237,23 @@ async def all_hw_tomorrow(callback: CallbackQuery):
 
 @router.callback_query(lambda c: c.data == "view_ht")
 async def view_ht(callback: CallbackQuery):
-    await callback.message.answer("ЗАГЛУШКА -  Посмотреть ДЗ")
+    await callback.message.answer("Выберите:", reply_markup=keyboard_inline_view_ht())
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "get_ht_netschool" or c.data == 'get_ht_date')
+async def get_ht_netschool(callback: CallbackQuery, state: FSMContext):
+    calendar = SimpleCalendar()
+    await state.set_state(Form.waiting_get_ht_date_netschool)
+    await callback.message.answer("📅 Выберите дату домашнего задания:", reply_markup= await calendar.start_calendar())
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "get_ht_students" or c.data == 'get_ht_date_student')
+async def get_ht_students(callback: CallbackQuery, state: FSMContext):
+    calendar = SimpleCalendar()
+    await state.set_state(Form.waiting_get_ht_date_student)
+    await callback.message.answer("📅 Выберите дату домашнего задания:", reply_markup=await calendar.start_calendar())
     await callback.answer()
 
 
@@ -284,6 +348,7 @@ async def netschool_password(message: Message, state: FSMContext):
             await message.answer(f"{e}")
             
     asyncio.create_task(log_school())
+
 @router.message(F.text == "Разлогин")
 async def logout_sch(message: Message, state: FSMContext):
     print(sessions)
