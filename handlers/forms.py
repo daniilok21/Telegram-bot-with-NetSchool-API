@@ -11,6 +11,7 @@ class Form(StatesGroup):
     waiting_get_hw_date = State()
     waiting_get_ht_date_netschool = State()
     waiting_get_ht_date_student = State()
+    waiting_add_ht_date_student = State()
 
 
 class Auth(StatesGroup):

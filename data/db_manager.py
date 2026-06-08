@@ -1,4 +1,5 @@
 from . import db_session
+from .homework_tasks import HomeworkTask
 from .users import User
 from .homework_answers import HomeworkAnswer
 from .sessions import Session
@@ -45,6 +46,56 @@ def get_hw(date, subject=None):
     db_sess.close()
     return result
 
+
+def add_ht(subject, date, title=None, description=None, files=None, telegram_id=None):
+    db_sess = db_session.create_session()
+    if telegram_id:
+        user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
+        if not user:
+            return False
+
+    task = HomeworkTask(
+        subject=subject,
+        date=date,
+        title=title,
+        description=description
+    )
+    if user:
+        task.user_id = user.id
+    if files:
+        task.set_files(files)
+
+    db_sess.add(task)
+    db_sess.commit()
+    db_sess.close()
+
+
+def get_ht(date, isFromNetSchool, subject=None):
+    db_sess = db_session.create_session()
+
+    res = db_sess.query(HomeworkTask).filter(HomeworkTask.date == date)
+    if subject:
+        res = res.filter(HomeworkTask.subject == subject)
+
+    if isFromNetSchool:
+        res = res.filter(HomeworkTask.user_id == None)
+    else:
+        res = res.filter(HomeworkTask.user_id != None)
+
+    hometask = res.all()
+
+    result = {}
+    for h in hometask:
+        if h.user_id:
+            user_name = h.user.username if h.user and h.user.username else f"User_{h.user_id}"
+        else:
+            user_name = "NetSchool"
+        if user_name not in result:
+            result[user_name] = []
+        result[user_name].append(h.to_dict())
+
+    db_sess.close()
+    return result
 
 def new_or_old_user_check_and_create(telegram_id, username):
     db_sess = db_session.create_session()

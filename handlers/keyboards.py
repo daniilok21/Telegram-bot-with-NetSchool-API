@@ -64,6 +64,22 @@ def keyboard_inline_view_ht():
     return keyboard
 
 
+def keyboard_inline_add_or_search_ht():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="➕ Добавить ДЗ", callback_data="add_ht_student"
+                ),
+                InlineKeyboardButton(
+                    text="🔍 Посмотреть ДЗ", callback_data="search_ht_students"
+                ),
+            ],
+        ]
+    )
+    return keyboard
+
+
 def keyboard_save():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[

@@ -2,6 +2,8 @@ from calendar import calendar
 from datetime import timedelta, datetime
 from importlib.resources import files
 import asyncio
+from logging import fatal
+
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -79,6 +81,25 @@ async def calendar_get_hw_logic(
     await callback.answer()
 
 
+@router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_add_ht_date_student)
+async def calendar_add_from_user(
+    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+):
+    calendar = SimpleCalendar()
+    selected, date = await calendar.process_selection(callback, callback_data)
+
+    if selected:
+        selected_date = date.strftime("%d.%m.%Y")
+        add_ht('qwerty', selected_date, "some_text", "some_text", "some_files",telegram_id=callback.from_user.id)
+
+    await state.clear()
+    await callback.message.answer(f'ДЗ добавлено на {selected_date}!')
+    await callback.message.answer(
+        "Выберите действие:", reply_markup=keyboard_after_get_hw()
+    )
+    await callback.answer()
+
+
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_ht_date_netschool)
 async def calendar_get_ht_netschool_logic(
     callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
@@ -113,7 +134,7 @@ async def calendar_get_ht_student_logic(
 
     if selected:
         selected_date = date.strftime("%d.%m.%Y")
-        hometask = "get_ht нужен в метод calendar_get_ht_student_student" # get_ht(selected_date)
+        hometask = get_ht(selected_date, False)
         if hometask:
             await callback.message.answer(f"ДЗ на {selected_date}:\n\n")
             await callback.message.answer(f"{hometask}")
@@ -251,6 +272,20 @@ async def get_ht_netschool(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(lambda c: c.data == "get_ht_students" or c.data == 'get_ht_date_student')
 async def get_ht_students(callback: CallbackQuery, state: FSMContext):
+    await callback.message.answer("Выберите:", reply_markup=keyboard_inline_add_or_search_ht())
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "add_ht_student")
+async def add_ht_student(callback: CallbackQuery, state: FSMContext):
+    calendar = SimpleCalendar()
+    await state.set_state(Form.waiting_add_ht_date_student)
+    await callback.message.answer("📅 Выберите дату для добавления домашнего задания:", reply_markup=await calendar.start_calendar())
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "search_ht_students")
+async def search_ht_students(callback: CallbackQuery, state: FSMContext):
     calendar = SimpleCalendar()
     await state.set_state(Form.waiting_get_ht_date_student)
     await callback.message.answer("📅 Выберите дату домашнего задания:", reply_markup=await calendar.start_calendar())
