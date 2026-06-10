@@ -74,10 +74,10 @@ async def calendar_get_hw_logic(
                     text = ""
         else:
             await callback.message.answer(f"Ответов на {selected_date} нет.")
-    await state.clear()
-    await callback.message.answer(
-        "Выберите действие:", reply_markup=keyboard_after_get_hw()
-    )
+        await state.clear()
+        await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_after_get_hw()
+        )
     await callback.answer()
 
 
@@ -92,11 +92,11 @@ async def calendar_add_from_user(
         selected_date = date.strftime("%d.%m.%Y")
         add_ht('qwerty', selected_date, "some_text", "some_text", "some_files",telegram_id=callback.from_user.id)
 
-    await state.clear()
-    await callback.message.answer(f'ДЗ добавлено на {selected_date}!')
-    await callback.message.answer(
-        "Выберите действие:", reply_markup=keyboard_after_get_hw()
-    )
+        await state.clear()
+        await callback.message.answer(f'ДЗ добавлено на {selected_date}!')
+        await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_after_get_hw()
+        )
     await callback.answer()
 
 
@@ -116,13 +116,11 @@ async def calendar_get_ht_netschool_logic(
             await callback.message.answer(f"{hometask}")
         else:
             await callback.message.answer(f"Дз с netschool на {selected_date} нет.")
-    await state.clear()
-    await callback.message.answer(
-        "Выберите действие:", reply_markup=keyboard_after_get_ht()
-    )
+        await state.clear()
+        await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_after_get_ht()
+        )
     await callback.answer()
-
-
 
 
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_ht_date_student)
@@ -136,14 +134,34 @@ async def calendar_get_ht_student_logic(
         selected_date = date.strftime("%d.%m.%Y")
         hometask = get_ht(selected_date, False)
         if hometask:
-            await callback.message.answer(f"ДЗ на {selected_date}:\n\n")
+            text = f"ДЗ на {selected_date}:\n\n"
+            for h in hometask:
+                for answ in hometask[h]:
+                    date_str_in_date = datetime.strptime(answ['created_at'].replace('T', ' '), "%Y-%m-%d %H:%M:%S")
+                    text += f"Пользователь @{h} \nопубликовал задание {date_str_in_date.strftime("%d.%m.%Y")} в {date_str_in_date.strftime("%H:%M")}:\nпо предмету {answ['subject']}:\n\n"
+                    if text:
+                        text += f"{answ['description']}"
+                    await callback.message.answer(text)
+                    for doc in answ["files_json"]:
+                        if doc["type"] == "photo":
+                            await callback.message.answer_photo(
+                                doc["file_id"],
+                                caption=f"Фото от @{h} по предмету: {answ['subject']}",
+                            )
+                        elif doc["type"] == "document":
+                            await callback.message.answer_document(
+                                document=doc["file_id"],
+                                caption=f"Документ от @{h} по предмету {answ['subject']}:\n",
+                            )
+                    text += "\n\n"
+                    text = ""
             await callback.message.answer(f"{hometask}")
         else:
             await callback.message.answer(f"ДЗ от пользователей на {selected_date} нет.")
-    await state.clear()
-    await callback.message.answer(
-        "Выберите действие:", reply_markup=keyboard_after_get_ht_student()
-    )
+        await state.clear()
+        await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_after_get_ht_student()
+        )
     await callback.answer()
 
 
@@ -194,7 +212,6 @@ async def save_hw(callback: CallbackQuery, state: FSMContext):
     date = data.get("selected_date")
     text = data.get("answer")
     files = data.get("files")
-    print()
     if date:
         if files or text:
             if add_hw(callback.from_user.id, "qwerty", date, text, files):
@@ -233,7 +250,7 @@ async def all_hw_tomorrow(callback: CallbackQuery):
     text = f"Ответы на завтра:\n\n"
     for h in homework:
         for answ in homework[h]:
-            text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}:\nпо предмету {answ['subject']}:"
+            text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}:\nпо предмету {answ['subject']}: \n\n"
             if text:
                 text += f"{answ['text']}"
             await callback.message.answer(text)

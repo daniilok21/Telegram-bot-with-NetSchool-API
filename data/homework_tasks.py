@@ -36,7 +36,7 @@ class HomeworkTask(SqlAlchemyBase):
             'id': self.id,
             'user_id': self.user_id,
             'subject': self.subject,
-            'date': self.date.strftime("%d.%m.%Y") if self.date else None,
+            'date': self.date,
             'title': self.title,
             'description': self.description,
             'files': self.get_files(),
