@@ -166,7 +166,7 @@ async def netschool_sms(message: Message, state: FSMContext):
 
 @router.message(Command("test"))
 async def test(message: Message):
-    print(get_settings(message.from_user.id, ['boolean_notify_admins']))
+    await send_notify_to_users(message.bot, "boolean_notify_admins", 'Лох', 'ТЫ Лох')
     await message.answer("Done!")
 
 

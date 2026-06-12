@@ -1,5 +1,3 @@
-from faulthandler import is_enabled
-
 from . import db_session
 from .homework_tasks import HomeworkTask
 from .users import User
@@ -8,6 +6,43 @@ from .sessions import Session
 from .encoder import *
 from .settings import Setting
 
+
+def get_user_by_telegram_id(telegram_id):
+    db_sess = db_session.create_session()
+    user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
+    db_sess.close()
+    return user
+
+
+def get_users_notify_settings(setting_name):
+    db_sess = db_session.create_session()
+
+    settings = db_sess.query(Setting).filter(
+        Setting.setting_name == setting_name,Setting.is_enabled == True).all()
+
+    res = []
+    for setting in settings:
+        user = db_sess.query(User).filter(User.telegram_id == setting.telegram_id).first()
+        if user:
+            res.append(user)
+
+    db_sess.close()
+    return res
+
+
+async def send_notify_to_users(bot, setting_name, title, message, inline_keyboard=None, except_user_id=None):
+    users = get_users_notify_settings(setting_name)
+
+    for user in users:
+        if except_user_id and user.telegram_id == except_user_id:
+            continue
+
+        text = f"🔔 {title}\n\n{message}"
+        await bot.send_message(
+            chat_id=user.telegram_id,
+            text=text,
+            reply_markup=inline_keyboard
+        )
 
 def get_settings(telegram_id, settings_names : list):
     db_sess = db_session.create_session()

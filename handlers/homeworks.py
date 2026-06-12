@@ -76,6 +76,9 @@ async def save_hw(callback: CallbackQuery, state: FSMContext):
         if files or text:
             if add_hw(callback.from_user.id, "qwerty", date, text, files):
                 await callback.message.answer(f"Ответ сохранен на дату\n{date}")
+                user = get_user_by_telegram_id(callback.from_user.id)
+                user_name = user.username
+                await send_notify_to_users(callback.bot, "boolean_notify_new_homework", 'Новый ответ на ДЗ!', f'Пользователь @{user_name}\nопубликовал ответ на ДЗ на {date}!', except_user_id=callback.from_user.id)
             else:
                 await callback.message.answer(f"Ошибка!")
         else:
