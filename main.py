@@ -1,3 +1,5 @@
+from calendar import calendar
+
 from dotenv import load_dotenv
 load_dotenv()
 import asyncio
@@ -13,13 +15,20 @@ from data.users import User
 
 
 from handlers.routes import router
-
+from handlers.calendars import router as calendar_router
+from handlers.homeworks import router as homeworks_router
+from handlers.admins_panels import router as admins_router
+from handlers.callbacks import router as callback_router
 
 
 TOKEN = getenv("TOKEN")
 PROXY_URL = getenv("PROXY_URL")
 
 dp = Dispatcher()
+dp.include_router(calendar_router)
+dp.include_router(homeworks_router)
+dp.include_router(admins_router)
+dp.include_router(callback_router)
 dp.include_router(router)
 
 
