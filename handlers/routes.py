@@ -26,6 +26,8 @@ async def start(message: Message):
     sessions[message.from_user.id] = school
     new_or_old_user_check_and_create(message.from_user.id, message.from_user.username)
     if check_user_is_allowed(message.from_user.id):
+        if not user_has_settings(message.from_user.id):
+            init_settings(message.from_user.id)
         await message.answer(
             "Привет! Я *бот*, _созданный_ с помощью aiogram.\n Пиши /help если нужна помощь",
             parse_mode="Markdown",
@@ -35,6 +37,14 @@ async def start(message: Message):
         await message.answer(
             "Вы не можете пользоваться ботом, попросите администраторов включить вас в белый список."
         )
+
+
+def init_settings(telegram_id):
+    default_settings = {'boolean_notify_new_answers': False,
+                        'boolean_notify_new_homework': False,
+                        'boolean_notify_admins': True}
+    for key, value in default_settings.items():
+        add_settings(telegram_id, key, value)
 
 
 @router.message(Command("help"))
@@ -152,6 +162,12 @@ async def netschool_sms(message: Message, state: FSMContext):
     if future and not future.done():
         future.set_result(sms)
 ########################################################################################
+
+
+@router.message(Command("test"))
+async def test(message: Message):
+    print(get_settings(message.from_user.id, ['boolean_notify_admins']))
+    await message.answer("Done!")
 
 
 @router.message()

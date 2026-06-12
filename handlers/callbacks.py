@@ -14,6 +14,7 @@ from aiogram.types import (
     ReplyKeyboardRemove,
 )
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram.utils.text_decorations import markdown_decoration
 from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
 from data.db_manager import *
 from .keyboards import *
@@ -88,5 +89,40 @@ async def average_score(callback: CallbackQuery):
 
 @router.callback_query(lambda c: c.data == "settings")
 async def settings(callback: CallbackQuery):
-    await callback.message.answer("ЗАГЛУШКА -  Настройки")
+    await callback.message.answer("Выберите:", reply_markup=keyboard_settings_menu())
     await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "notify")
+async def notify(callback: CallbackQuery):
+    text = "🔔 Настройки уведомлений\n\nВыберите, о чем получать уведомления:\n\n"
+    await callback.message.edit_text(text, reply_markup=keyboard_settings_notify(callback.from_user.id))
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "toggle_notify_admins")
+async def toggle_notify_admins(callback: CallbackQuery):
+    current_setting = get_settings(callback.from_user.id, ["boolean_notify_admins"])
+    add_settings(callback.from_user.id, "boolean_notify_admins", not current_setting['boolean_notify_admins'])
+    await callback.message.edit_reply_markup(
+        reply_markup=keyboard_settings_notify(callback.from_user.id)
+    )
+
+
+@router.callback_query(lambda c: c.data == "toggle_notify_new_answers")
+async def toggle_notify_new_answers(callback: CallbackQuery):
+    current_setting = get_settings(callback.from_user.id, ["boolean_notify_new_answers"])
+    add_settings(callback.from_user.id, "boolean_notify_new_answers", not current_setting['boolean_notify_new_answers'])
+    await callback.message.edit_reply_markup(
+        reply_markup=keyboard_settings_notify(callback.from_user.id)
+    )
+
+
+@router.callback_query(lambda c: c.data == "toggle_notify_new_homework")
+async def toggle_notify_new_homework(callback: CallbackQuery):
+    current_setting = get_settings(callback.from_user.id, ["boolean_notify_new_homework"])
+    add_settings(callback.from_user.id, "boolean_notify_new_homework", not current_setting['boolean_notify_new_homework'])
+    await callback.message.edit_reply_markup(
+        reply_markup=keyboard_settings_notify(callback.from_user.id)
+    )
+

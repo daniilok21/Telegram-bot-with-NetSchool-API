@@ -1,9 +1,13 @@
+from gc import callbacks
+
 from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
     ReplyKeyboardMarkup,
     KeyboardButton,
 )
+
+from data.db_manager import get_settings
 
 
 def keyboard_inline_start():
@@ -154,8 +158,34 @@ def keyboard_gosuslugi():
         ]
     )
     return keyboard
+
 def keyboard_logout():
     keyboard = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text="Разлогин")]], resize_keyboard=True
+    )
+    return keyboard
+
+def keyboard_settings_menu():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🔔 Уведомления", callback_data="notify"),
+             InlineKeyboardButton(text="Назад", callback_data="back")],
+        ]
+    )
+    return keyboard
+
+
+def keyboard_settings_notify(telegram_id):
+    notify_settings_name = ['boolean_notify_new_answers',
+                       'boolean_notify_new_homework',
+                       'boolean_notify_admins']
+    settings_value = get_settings(telegram_id ,notify_settings_name)
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=f"{'✅' if settings_value['boolean_notify_admins'] else '❌'} Уведомления админов", callback_data="toggle_notify_admins")],
+            [InlineKeyboardButton(text=f"{'✅' if settings_value['boolean_notify_new_answers'] else '❌'} Новые ответы", callback_data="toggle_notify_new_answers")],
+            [InlineKeyboardButton(text=f"{'✅' if settings_value['boolean_notify_new_homework'] else '❌'} Новые ДЗ", callback_data="toggle_notify_new_homework")],
+            [InlineKeyboardButton(text="Назад", callback_data="back")]
+        ]
     )
     return keyboard

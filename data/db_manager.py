@@ -1,9 +1,65 @@
+from faulthandler import is_enabled
+
 from . import db_session
 from .homework_tasks import HomeworkTask
 from .users import User
 from .homework_answers import HomeworkAnswer
 from .sessions import Session
 from .encoder import *
+from .settings import Setting
+
+
+def get_settings(telegram_id, settings_names : list):
+    db_sess = db_session.create_session()
+
+    settings = db_sess.query(Setting).filter(
+        Setting.telegram_id == telegram_id, Setting.setting_name.in_(settings_names)).all()
+
+    res = {}
+    if settings:
+        for setting in settings:
+            if setting.setting_name.startswith("boolean_"):
+                res[setting.setting_name] = setting.is_enabled
+            else:
+                res[setting.setting_name] = setting.setting_value
+
+    db_sess.close()
+    return res
+
+def user_has_settings(telegram_id):
+    db_sess = db_session.create_session()
+    setting = db_sess.query(Setting).filter(Setting.telegram_id == telegram_id).first()
+    db_sess.close()
+
+    return setting
+
+
+def add_settings(telegram_id, settings_name, value):
+    db_sess = db_session.create_session()
+
+    setting = db_sess.query(Setting).filter(
+        Setting.telegram_id == telegram_id, Setting.setting_name == settings_name).first()
+
+    if setting:
+        if settings_name.startswith("boolean_"):
+            setting.is_enabled = value
+        else:
+            setting.setting_value = value
+    else:
+        new_setting = Setting(
+            telegram_id=telegram_id,
+            setting_name=settings_name
+        )
+        if settings_name.startswith("boolean_"):
+            new_setting.is_enabled = value
+        else:
+            new_setting.setting_value = value
+        db_sess.add(new_setting)
+
+    db_sess.commit()
+    db_sess.close()
+    return True
+
 
 def add_hw(telegram_id, subject, date, text=None, files=None):
     db_sess = db_session.create_session()
