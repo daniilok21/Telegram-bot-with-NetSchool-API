@@ -30,9 +30,9 @@ async def calendar_logic(
 ):
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
-
     if selected:
         await state.update_data(selected_date=date.strftime("%d.%m.%Y"))
+        await callback.message.answer(f"{date}   {selected}")
         await callback.message.answer(
             f"Выбрана дата: {date.strftime('%d.%m.%Y')}\n\nТеперь напишите текст ответа на домашнее задание. Вы сможете выбрать файлы позже.\nЕсли не хотите добавлять текст напишите /skip"
         )
@@ -106,9 +106,15 @@ async def calendar_get_ht_netschool_logic(
 ):
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
-
+###################
     if selected:
+        school = sessions.get(callback.from_user.id) 
         selected_date = date.strftime("%d.%m.%Y")
+        dat = date.strftime("%Y.%m.%d")
+        try:
+            await callback.message.answer(await school.today_homework(str(dat)))
+        
+
         hometask = "get_ht нужен в метод calendar_get_ht_netschool_logic" # get_ht(selected_date)
         await callback.message.answer("ВНИМАНИЕ! Информация актуальна на 'во сколько'. База данных загружена 'кем-то'.")
         if hometask:
@@ -286,7 +292,6 @@ async def get_ht_netschool(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer("📅 Выберите дату домашнего задания:", reply_markup= await calendar.start_calendar())
     await callback.answer()
 
-
 @router.callback_query(lambda c: c.data == "get_ht_students" or c.data == 'get_ht_date_student')
 async def get_ht_students(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer("Выберите:", reply_markup=keyboard_inline_add_or_search_ht())
@@ -344,9 +349,6 @@ async def settings(callback: CallbackQuery):
 async def log_in(callback: CallbackQuery, state: FSMContext):
     try:
         school = sessions.get(callback.from_user.id)
-        if not school:
-            school = School(login="", password="", user_id=callback.from_user.id)
-            sessions[callback.from_user.id] = school
         if not school.active:
             await callback.message.answer("Авторизация на сайт netschool\nВведите номер телефона(+7)", reply_markup=keyboard_back())
             await state.set_state(Auth.login)
@@ -355,7 +357,7 @@ async def log_in(callback: CallbackQuery, state: FSMContext):
             await callback.message.answer("Вы уже авторизованы!", reply_markup=keyboard_logout())
         
     except Exception as e:
-        await callback.message.answer("/start")
+        await callback.message.answer("нажмите /start")
     await callback.answer()
 
 @router.message(Auth.login, F.text)
@@ -402,9 +404,10 @@ async def netschool_password(message: Message, state: FSMContext):
         try:
             await school.login()
             sessions[message.from_user.id] = school
-            await message.answer("успешно вошел", reply_markup=keyboard_logout())
+            await message.answer("успешно вошел", reply_markup=keyboard_inline_start())
         except Exception as e:
-            await message.answer(f"{e}")
+            print(f"{e}")
+            await message.answer(f"АШИБАЧКА", reply_markup=keyboard_inline_start())
             
     asyncio.create_task(log_school())
 
@@ -419,7 +422,7 @@ async def logout_sch(message: Message, state: FSMContext):
         school = sessions[message.from_user.id]
         await school.logout()
         del sessions[message.from_user.id]
-        await message.answer(text="Успешный разлогин")
+        await message.answer(text="Успешный разлогин", reply_markup=keyboard_inline_start())
 
 @router.message(Auth.sms, F.text)
 async def netschool_sms(message: Message, state: FSMContext):

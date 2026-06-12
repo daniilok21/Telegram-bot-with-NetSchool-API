@@ -20,6 +20,7 @@ from .models import (
     SubjectInfo,
     SubjectTotalMark,
     TotalMarksReportLine,
+    Day
 )
 from .regions import REGIONS, get_url, list_regions
 
