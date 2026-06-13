@@ -92,6 +92,12 @@ async def calendar_add_from_user(
 
         await state.clear()
         await callback.message.answer(f'ДЗ добавлено на {selected_date}!')
+        user = get_user_by_telegram_id(callback.from_user.id)
+        user_name = user.username
+        await send_notify_to_users(callback.bot, "boolean_notify_new_homework", 'Новое ДЗ!',
+                                   f'Пользователь @{user_name}\nопубликовал ДЗ на {selected_date}!',
+                                   except_user_id=callback.from_user.id
+                                   )
         await callback.message.answer(
             "Выберите действие:", reply_markup=keyboard_after_get_hw()
         )

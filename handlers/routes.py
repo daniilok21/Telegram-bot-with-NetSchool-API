@@ -35,7 +35,8 @@ async def start(message: Message):
         await message.answer("Выберите действие:", reply_markup=keyboard_inline_start())
     else:
         await message.answer(
-            "Вы не можете пользоваться ботом, попросите администраторов включить вас в белый список."
+            f"Вы не можете пользоваться ботом.\nВаш ID: `{message.from_user.id}`\nСкопируйте этот ID и отправьте администратору.",
+            parse_mode="Markdown"
         )
 
 
@@ -166,7 +167,6 @@ async def netschool_sms(message: Message, state: FSMContext):
 
 @router.message(Command("test"))
 async def test(message: Message):
-    await send_notify_to_users(message.bot, "boolean_notify_admins", 'Лох', 'ТЫ Лох')
     await message.answer("Done!")
 
 

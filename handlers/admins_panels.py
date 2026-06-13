@@ -75,3 +75,21 @@ async def users(message: Message):
         await message.answer(
             "У вас нет прав администратора для выполнения этой команды!"
         )
+
+
+@router.message(Command("say"))
+async def say(message: Message):
+    command = message.text.replace('/say', '')
+    if check_user_is_admin(message.from_user.id):
+        if command:
+            user = get_user_by_telegram_id(message.from_user.id)
+            await send_notify_to_users(message.bot, "boolean_notify_admins", 'Объявление!',
+                                       f'@{user.username}: {command}',
+                                       except_user_id=message.from_user.id
+                                       )
+        else:
+            await message.answer('Нельзя отправить пустой текст!')
+    else:
+        await message.answer(
+            "У вас нет прав администратора для выполнения этой команды!"
+        )
