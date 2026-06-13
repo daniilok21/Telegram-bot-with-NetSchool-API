@@ -25,36 +25,30 @@ router = Router()
 sessions = {}
 
 
-@router.message(Form.waiting_homework_answer)
+@router.message(Form.waiting_homework_answer, F.photo | F.document | F.text)
 async def homework_answer(message: Message, state: FSMContext):
     data = await state.get_data()
     selected_date = data.get("selected_date")
-    answer = message.text
-    if answer != "/skip":
-        await state.update_data(selected_date=selected_date, answer=answer, files=[])
-    await message.answer(
-        f"Добавьте файлы. Когда закончите, нажмите кнопку 'Завершить'.",
-        reply_markup=keyboard_save(),
-    )
-    await state.set_state(Form.waiting_files)
-
-
-@router.message(Form.waiting_files, F.photo | F.document)
-async def get_files(message: Message, state: FSMContext):
-    data = await state.get_data()
+    text = data.get("answer", '')
     files = data.get("files", [])
-    if message.photo:
+    if message.text:
+        text += message.text + '\n'
+        await message.answer(f"📝 Текст добавлен!")
+    elif message.photo:
         file_id = message.photo[-1].file_id
-        files.append({"file_id": file_id, "type": "photo"})
-        await message.answer(f"📸 Фото добавлено! Всего: {len(files)}")
+        files.append({"file_id": file_id, "type": "photo", "caption": message.caption if message.caption else None})
+        await message.answer(f"📸 Фото добавлено! Всего файлов: {len(files)}")
     elif message.document:
         file_id = message.document.file_id
         file_name = message.document.file_name
         if not file_name:
             file_name = "Document"
-        files.append({"file_id": file_id, "type": "document", "name": file_name})
-        await message.answer(f"Документ '{file_name}' добавлен! Всего: {len(files)}")
-
+        files.append({"file_id": file_id, "type": "document", "name": file_name,
+                      "caption": message.caption if message.caption else None})
+        await message.answer(f"Документ '{file_name}' добавлен! Всего файлов: {len(files)}")
+    else:
+        await message.answer("❌ Неподдерживаемый тип файла. Отправьте текст, фото или документ.")
+    await state.update_data(answer=text)
     await state.update_data(files=files)
 
 

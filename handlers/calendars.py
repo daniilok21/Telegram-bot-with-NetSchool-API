@@ -32,7 +32,9 @@ async def calendar_logic(
     if selected:
         await state.update_data(selected_date=date.strftime("%d.%m.%Y"))
         await callback.message.answer(
-            f"Выбрана дата: {date.strftime('%d.%m.%Y')}\n\nТеперь напишите текст ответа на домашнее задание. Вы сможете выбрать файлы позже.\nЕсли не хотите добавлять текст напишите /skip"
+            f"Выбрана дата: {date.strftime('%d.%m.%Y')}\n\n📝 Теперь отправьте ответ на домашнее задание.\n"
+            f"Вы можете отправить текст, фото, документ.\nКогда закончите, нажмите кнопку 'Завершить'.",
+            reply_markup=keyboard_save()
         )
         await state.set_state(Form.waiting_homework_answer)
     await callback.answer()
@@ -53,20 +55,22 @@ async def calendar_get_hw_logic(
             text = ""
             for h in homework:
                 for answ in homework[h]:
-                    text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}:\nпо предмету: {answ['subject']}:"
-                    if text:
+                    text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}\nпо предмету {answ['subject']}:\n"
+                    if answ['text']:
                         text += f"{answ['text']}"
                     await callback.message.answer(text)
                     for doc in answ["files"]:
                         if doc["type"] == "photo":
+                            caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
                             await callback.message.answer_photo(
                                 doc["file_id"],
-                                caption=f"Фото от @{h} по предмету: {answ['subject']}",
+                                caption=f"Фото от @{h} по предмету {answ['subject']}.\n{caption_text}"
                             )
                         elif doc["type"] == "document":
+                            caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
                             await callback.message.answer_document(
                                 document=doc["file_id"],
-                                caption=f"Документ от @{h} по предмету {answ['subject']}:\n",
+                                caption=f"Документ от @{h} по предмету {answ['subject']}.\n{caption_text}",
                             )
                     text += "\n\n"
                     text = ""
