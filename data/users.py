@@ -18,7 +18,8 @@ class User(SqlAlchemyBase):
 
     sessions = sqlalchemy.orm.relationship("Session", back_populates="user", cascade="all, delete-orphan")
     homework_answers = sqlalchemy.orm.relationship("HomeworkAnswer", back_populates="user", cascade="all, delete-orphan")
-    homework_tasks = sqlalchemy.orm.relationship("HomeworkTask", back_populates="user")
+    homework_tasks = sqlalchemy.orm.relationship("HomeworkTask", back_populates="user", cascade="all, delete-orphan")
+    settings = sqlalchemy.orm.relationship("Setting", back_populates="user", cascade="all, delete-orphan")
 
     def to_dict(self, only=()):
         fields = {

@@ -4,6 +4,97 @@ from .users import User
 from .homework_answers import HomeworkAnswer
 from .sessions import Session
 from .encoder import *
+from .settings import Setting
+
+
+def get_user_by_telegram_id(telegram_id):
+    db_sess = db_session.create_session()
+    user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
+    db_sess.close()
+    return user
+
+
+def get_users_notify_settings(setting_name):
+    db_sess = db_session.create_session()
+
+    settings = db_sess.query(Setting).filter(
+        Setting.setting_name == setting_name,Setting.is_enabled == True).all()
+
+    res = []
+    for setting in settings:
+        user = db_sess.query(User).filter(User.telegram_id == setting.telegram_id).first()
+        if user:
+            res.append(user)
+
+    db_sess.close()
+    return res
+
+
+async def send_notify_to_users(bot, setting_name, title, message, inline_keyboard=None, except_user_id=None):
+    users = get_users_notify_settings(setting_name)
+
+    for user in users:
+        if except_user_id and user.telegram_id == except_user_id:
+            continue
+
+        text = f"🔔 {title}\n\n{message}"
+        await bot.send_message(
+            chat_id=user.telegram_id,
+            text=text,
+            reply_markup=inline_keyboard
+        )
+
+def get_settings(telegram_id, settings_names : list):
+    db_sess = db_session.create_session()
+
+    settings = db_sess.query(Setting).filter(
+        Setting.telegram_id == telegram_id, Setting.setting_name.in_(settings_names)).all()
+
+    res = {}
+    if settings:
+        for setting in settings:
+            if setting.setting_name.startswith("boolean_"):
+                res[setting.setting_name] = setting.is_enabled
+            else:
+                res[setting.setting_name] = setting.setting_value
+
+    db_sess.close()
+    return res
+
+def user_has_settings(telegram_id):
+    db_sess = db_session.create_session()
+    setting = db_sess.query(Setting).filter(Setting.telegram_id == telegram_id).first()
+    db_sess.close()
+
+    return setting
+
+
+def add_settings(telegram_id, settings_name, value):
+    db_sess = db_session.create_session()
+
+    setting = db_sess.query(Setting).filter(
+        Setting.telegram_id == telegram_id, Setting.setting_name == settings_name).first()
+
+    if setting:
+        if settings_name.startswith("boolean_"):
+            setting.is_enabled = value
+        else:
+            setting.setting_value = value
+    else:
+        new_setting = Setting(
+            telegram_id=telegram_id,
+            setting_name=settings_name
+        )
+        if settings_name.startswith("boolean_"):
+            new_setting.is_enabled = value
+        else:
+            new_setting.setting_value = value
+        db_sess.add(new_setting)
+
+    db_sess.commit()
+    db_sess.close()
+    return True
+
 
 def add_hw(telegram_id, subject, date, text=None, files=None):
     db_sess = db_session.create_session()
