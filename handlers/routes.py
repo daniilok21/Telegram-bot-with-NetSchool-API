@@ -115,17 +115,19 @@ async def calendar_get_ht_netschool_logic(
             await callback.message.answer(await school.today_homework(str(dat)))
         
 
-        hometask = "get_ht нужен в метод calendar_get_ht_netschool_logic" # get_ht(selected_date)
-        await callback.message.answer("ВНИМАНИЕ! Информация актуальна на 'во сколько'. База данных загружена 'кем-то'.")
-        if hometask:
-            await callback.message.answer(f"ДЗ на {selected_date}:\n\n")
-            await callback.message.answer(f"{hometask}")
-        else:
-            await callback.message.answer(f"Дз с netschool на {selected_date} нет.")
-        await state.clear()
-        await callback.message.answer(
-            "Выберите действие:", reply_markup=keyboard_after_get_ht()
-        )
+            hometask = "get_ht нужен в метод calendar_get_ht_netschool_logic" # get_ht(selected_date)
+            await callback.message.answer("ВНИМАНИЕ! Информация актуальна на 'во сколько'. База данных загружена 'кем-то'.")
+            if hometask:
+                await callback.message.answer(f"ДЗ на {selected_date}:\n\n")
+                await callback.message.answer(f"{hometask}")
+            else:
+                await callback.message.answer(f"Дз с netschool на {selected_date} нет.")
+            await state.clear()
+            await callback.message.answer(
+                "Выберите действие:", reply_markup=keyboard_after_get_ht()
+            )
+        except Exception:
+            await callback.message.answer("ашибачка")
     await callback.answer()
 
 
