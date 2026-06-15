@@ -18,6 +18,20 @@ from api.start import School
 sms_feature = {}
 router = Router()
 sessions = {}
+auth_messages = {}
+
+
+async def delete_auth_messages(user_id, bot):
+    if user_id in auth_messages:
+        for message_id in auth_messages[user_id]:
+            await bot.delete_message(chat_id=user_id, message_id=message_id)
+        auth_messages[user_id] = []
+
+
+async def save_auth_message(user_id, message):
+    if user_id not in auth_messages:
+        auth_messages[user_id] = []
+    auth_messages[user_id].append(message.message_id)
 
 
 @router.message(Command("start"))
@@ -69,14 +83,15 @@ async def about(message: Message):
 async def log_in(callback: CallbackQuery, state: FSMContext):
     try:
         school = sessions.get(callback.from_user.id)
+        await delete_auth_messages(callback.from_user.id, callback.bot)
         if not school:
             school = School(login="", password="", user_id=callback.from_user.id)
             sessions[callback.from_user.id] = school
         if not school.active:
-            await callback.message.answer("Авторизация на сайт netschool\nВведите номер телефона(+7)",
+            message = await callback.message.answer("Авторизация на сайт netschool\nВведите номер телефона(+7)",
                                           reply_markup=keyboard_back())
+            await save_auth_message(callback.from_user.id, message)
             await state.set_state(Auth.login)
-            await callback.answer()
         else:
             await callback.message.answer("Вы уже авторизованы!", reply_markup=keyboard_logout())
 
@@ -88,14 +103,17 @@ async def log_in(callback: CallbackQuery, state: FSMContext):
 @router.message(Auth.login, F.text)
 async def netschool_login(message: Message, state: FSMContext):
     phone = message.text.strip()
+    await save_auth_message(message.from_user.id, message)
 
     if not (phone.startswith("+7") and len(phone) == 12 and phone[1:].isdigit()):
-        await message.answer("Введите корректный номер телефона.\n""Пример: +79991234567", reply_markup=keyboard_back())
+        msg = await message.answer("Введите корректный номер телефона.\n""Пример: +79991234567", reply_markup=keyboard_back())
+        await save_auth_message(message.from_user.id, msg)
         return
 
     await state.update_data(login=phone)
 
-    await message.answer("Отлично!\nВведите пароль:", reply_markup=keyboard_back())
+    msg = await message.answer("Отлично!\nВведите пароль:", reply_markup=keyboard_back())
+    await save_auth_message(message.from_user.id, msg)
     await state.set_state(Auth.password)
 
 
@@ -116,7 +134,8 @@ async def netschool_password(message: Message, state: FSMContext):
     async def sms_user(mfa, mfa_info):
         future = asyncio.get_event_loop().create_future()
         sms_feature[message.from_user.id] = future
-        await message.answer("Введите sms:", reply_markup=keyboard_back())
+        msg = await message.answer("Введите sms:", reply_markup=keyboard_back())
+        await save_auth_message(message.from_user.id, msg)
         await state.set_state(Auth.sms)
         return await future
 
@@ -131,6 +150,7 @@ async def netschool_password(message: Message, state: FSMContext):
         try:
             await school.login()
             sessions[message.from_user.id] = school
+            await delete_auth_messages(message.from_user.id, message.bot)
             await message.answer("успешно вошел", reply_markup=keyboard_logout())
         except Exception as e:
             await message.answer(f"{e}")
@@ -155,6 +175,7 @@ async def logout_sch(message: Message, state: FSMContext):
 @router.message(Auth.sms, F.text)
 async def netschool_sms(message: Message, state: FSMContext):
     await state.update_data(sms=message.text)
+    await save_auth_message(message.from_user.id, message)
     data = await state.get_data()
     sms = data["sms"]
 
