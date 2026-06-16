@@ -16,6 +16,18 @@ class Setting(SqlAlchemyBase):
 
     user = sqlalchemy.orm.relationship("User", back_populates="settings")
 
+    def to_dict(self, only=()):
+        fields = {
+            'id': self.id,
+            'telegram_id': self.telegram_id,
+            'setting_name': self.setting_name,
+            'setting_value': self.setting_value,
+            'is_enabled': self.is_enabled,
+            'updated_at': self.updated_at if self.updated_at else None,
+        }
+        if only:
+            return {key: fields[key] for key in only}
+        return fields
 
 ######### setting_name ########### (названия настроек)
 # boolean_notify_new_answers (уведомлять о новых ответах)

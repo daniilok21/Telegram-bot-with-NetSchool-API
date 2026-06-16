@@ -10,6 +10,7 @@ class Session(SqlAlchemyBase):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
     session_token = Column(String(255), unique=True, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.now(), nullable=True)
+
     user = sqlalchemy.orm.relationship("User", back_populates="sessions")
 
     def to_dict(self, only=()):

@@ -10,13 +10,14 @@ class HomeworkAnswer(SqlAlchemyBase):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
-    subject = Column(String(100), nullable=False)
+    subject_id = Column(Integer, ForeignKey('subjects.id'), nullable=False, index=True)
     date = Column(String(10), nullable=False, index=True)
     text = Column(Text, nullable=True)
     files = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.now(), nullable=False)
 
     user = sqlalchemy.orm.relationship("User", back_populates="homework_answers")
+    subject_connection = sqlalchemy.orm.relationship("Subject", back_populates="homework_answers")
 
     def set_files(self, files):
         if files:
@@ -34,7 +35,7 @@ class HomeworkAnswer(SqlAlchemyBase):
             'id': self.id,
             'user_id': self.user_id,
             'user_name': self.user.login if self.user else None,
-            'subject': self.subject,
+            'subject': self.subject_connection.name if self.subject_connection else None,
             'date': self.date,
             'text': self.text,
             'files': self.get_files(),

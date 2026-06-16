@@ -5,6 +5,55 @@ from .homework_answers import HomeworkAnswer
 from .sessions import Session
 from .encoder import *
 from .settings import Setting
+from .subjects import Subject
+
+
+def init_subjects(subjects):
+    db_sess = db_session.create_session()
+    for subject_name in subjects:
+        already = db_sess.query(Subject).filter(Subject.name == subject_name).first()
+
+        if not already:
+            subj = Subject(name=subject_name, is_active=True)
+            db_sess.add(subj)
+    db_sess.commit()
+    db_sess.close()
+
+def get_or_create_subject(subject_name):
+    db_sess = db_session.create_session()
+
+    subject = db_sess.query(Subject).filter(Subject.name == subject_name).first()
+
+    if not subject:
+        subject = Subject(name=subject_name)
+        db_sess.add(subject)
+        db_sess.commit()
+
+    subject_id = subject.id
+    db_sess.close()
+    return subject_id
+
+
+def get_all_subjects():
+    db_sess = db_session.create_session()
+    subjects = db_sess.query(Subject).filter(Subject.is_active == True).order_by(Subject.name).all()
+    result = [s.to_dict() for s in subjects]
+    db_sess.close()
+    return result
+
+
+def set_is_active_subject(subject_id, is_active):
+    db_sess = db_session.create_session()
+
+    subject = db_sess.query(Subject).filter(Subject.id == subject_id).first()
+    if not subject:
+        db_sess.close()
+        return False
+
+    subject.is_active = is_active
+    db_sess.commit()
+    db_sess.close()
+    return True
 
 
 def get_user_by_telegram_id(telegram_id):
@@ -103,9 +152,11 @@ def add_hw(telegram_id, subject, date, text=None, files=None):
     if not user:
         return False
 
+    subject_id = get_or_create_subject(subject);
+
     homework = HomeworkAnswer(
         user_id=user.id,
-        subject=subject,
+        subject_id=subject_id,
         date=date,
         text=text,
     )
@@ -118,12 +169,14 @@ def add_hw(telegram_id, subject, date, text=None, files=None):
     return True
 
 
-def get_hw(date, subject=None):
+def get_hw(date, subject_name=None):
     db_sess = db_session.create_session()
 
     res = db_sess.query(HomeworkAnswer).filter(HomeworkAnswer.date == date)
-    if subject:
-        res = res.filter(HomeworkAnswer.subject == subject)
+    if subject_name:
+        subject = db_sess.query(Subject).filter(Subject.name == subject_name).first()
+        if subject:
+            res = res.filter(HomeworkAnswer.subject == subject.id)
     res.order_by(HomeworkAnswer.created_at)
 
     homework = res.all()
@@ -140,22 +193,23 @@ def get_hw(date, subject=None):
 
 def add_ht(subject, date, title=None, description=None, files=None, telegram_id=None):
     db_sess = db_session.create_session()
-    if telegram_id:
-        user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
-        if not user:
-            return False
+
+    subject_id = get_or_create_subject(subject)
 
     task = HomeworkTask(
-        subject=subject,
+        subject_id=subject_id,
         date=date,
         title=title,
         description=description
     )
-    if user:
-        task.user_id = user.id
+    if telegram_id:
+        user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
+        if not user:
+            return False
+        task.user_id = telegram_id
+
     if files:
         task.set_files(files)
-    print(21211221)
     db_sess.add(task)
     db_sess.commit()
     db_sess.close()

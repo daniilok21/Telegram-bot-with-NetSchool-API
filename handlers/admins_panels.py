@@ -22,6 +22,76 @@ from api.start import School
 #смс пользователей id - message
 router = Router()
 
+
+@router.message(Command("admin"))
+async def admin(message: Message):
+    if check_user_is_admin(message.from_user.id):
+        await message.answer("Доступные команды:\n"
+                             "`/allow <telegram_id>` - разрешить пользование ботом\n"
+                             "`/deny <telegram_id>` - запретить пользование ботом\n"
+                             "`/users` - посмотреть список пользователей\n"
+                             "`/add_subject <subject_name>` - добавить предмет\n"
+                             "`/set_is_active_subject <subject_id> <1/0>` - активация/деактивация предмета\n"
+                             "`/get_subjects` - список доступных предметов\n",
+                             parse_mode="Markdown")
+    else:
+        await message.answer(
+            "У вас нет прав администратора для выполнения этой команды!"
+        )
+
+@router.message(Command("set_is_active_subject"))
+async def set_is_active_subj(message: Message):
+    if check_user_is_admin(message.from_user.id):
+        command = message.text.strip().split()
+        if len(command) == 3 and command[1].isdigit() and command[2] in ['0', '1']:
+            if set_is_active_subject(command[1], command[2] == '1'):
+                await message.answer(f"Предмет с ID {command[1]} {'активирован' if command[2] == '1' else 'деактивирован'}")
+            else:
+                await message.answer(f"Предмет с ID `{command[1]}` не найден", parse_mode="Markdown")
+        else:
+            await message.answer("Некорректная команда! Пример:\n`/set_is_active_subject <subject_id> <1/0> (активировать/деактивировать)`", parse_mode="Markdown")
+    else:
+        await message.answer(
+            "У вас нет прав администратора для выполнения этой команды!"
+        )
+
+
+@router.message(Command("add_subject"))
+async def add_subject(message: Message):
+    if check_user_is_admin(message.from_user.id):
+        command = message.text.strip().split()
+        if len(command) == 2:
+            get_or_create_subject(command[1])
+            await message.answer(f"Создан новый предмет: {command[1]}!")
+        else:
+            await message.answer("Некорректная команда! Пример:\n`/add_subject <subject_name>`", parse_mode="Markdown")
+    else:
+        await message.answer(
+            "У вас нет прав администратора для выполнения этой команды!"
+        )
+
+
+@router.message(Command("get_subjects"))
+async def get_subjects(message: Message):
+    if check_user_is_admin(message.from_user.id):
+        command = message.text.strip().split()
+        if len(command) == 1:
+            subjects = get_all_subjects()
+            if subjects:
+                text = "Список предметов:\n"
+                for i in subjects:
+                    text += f"id: {i['id']} | name: {i['name']} | is_active: {i['is_active']}\n"
+                await message.answer(text)
+            else:
+                await message.answer("В БД нет предметов")
+        else:
+            await message.answer("Некорректная команда! Пример:\n`/get_subjects`", parse_mode="Markdown")
+    else:
+        await message.answer(
+            "У вас нет прав администратора для выполнения этой команды!"
+        )
+
+
 @router.message(Command("allow"))
 async def allow(message: Message):
     if check_user_is_admin(message.from_user.id):
@@ -69,7 +139,7 @@ async def users(message: Message):
         else:
             text = ""
             for u in all_users:
-                text += f"tg_id={u['telegram_id']} | is_allowed={u['is_allowed']} | is_admin={u['is_admin']}\n"
+                text += f"tg_id={u['telegram_id']} username={u['username']} | is_allowed={u['is_allowed']} | is_admin={u['is_admin']}\n"
             await message.answer(text)
     else:
         await message.answer(
