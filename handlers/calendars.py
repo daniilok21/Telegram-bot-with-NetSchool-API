@@ -1,30 +1,24 @@
-from calendar import calendar
-from datetime import timedelta, datetime
-from importlib.resources import files
-import asyncio
-from logging import fatal
+from datetime import datetime
 
-from aiogram import Router, F
-from aiogram.filters import Command
+from aiogram import Router
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import (
-    Message,
     CallbackQuery,
-    ReplyKeyboardRemove,
 )
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
+
 from data.db_manager import *
-from .keyboards import *
+from .callbacks import sessions
 from .forms import *
-from api.start import School
-#смс пользователей id - message
+from .keyboards import *
+
+# смс пользователей id - message
 router = Router()
+
 
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_date)
 async def calendar_logic(
-    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+        callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
 ):
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
@@ -42,7 +36,7 @@ async def calendar_logic(
 
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_hw_date)
 async def calendar_get_hw_logic(
-    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+        callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
 ):
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
@@ -85,14 +79,14 @@ async def calendar_get_hw_logic(
 
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_add_ht_date_student)
 async def calendar_add_from_user(
-    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+        callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
 ):
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
     if selected:
         selected_date = date.strftime("%d.%m.%Y")
-        add_ht('qwerty', selected_date, "some_text", "some_text", "some_files",telegram_id=callback.from_user.id)
+        add_ht('qwerty', selected_date, "some_text", "some_text", "some_files", telegram_id=callback.from_user.id)
 
         await state.clear()
         await callback.message.answer(f'ДЗ добавлено на {selected_date}!')
@@ -110,30 +104,34 @@ async def calendar_add_from_user(
 
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_ht_date_netschool)
 async def calendar_get_ht_netschool_logic(
-    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+        callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
 ):
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
     if selected:
-        selected_date = date.strftime("%d.%m.%Y")
-        hometask = "get_ht нужен в метод calendar_get_ht_netschool_logic" # get_ht(selected_date)
-        await callback.message.answer("ВНИМАНИЕ! Информация актуальна на 'во сколько'. База данных загружена 'кем-то'.")
-        if hometask:
-            await callback.message.answer(f"ДЗ на {selected_date}:\n\n")
-            await callback.message.answer(f"{hometask}")
-        else:
-            await callback.message.answer(f"Дз с netschool на {selected_date} нет.")
-        await state.clear()
-        await callback.message.answer(
-            "Выберите действие:", reply_markup=keyboard_after_get_ht()
-        )
+        try:
+            selected_date = date.strftime("%d.%m.%Y")
+            school = sessions[callback.message.from_user.id]
+            hometask = "get_ht нужен в метод calendar_get_ht_netschool_logic"  # get_ht(selected_date)
+            await callback.message.answer("ВНИМАНИЕ! Информация актуальна на 'во сколько'. База данных загружена 'кем-то'.")
+            if hometask:
+                await callback.message.answer(f"ДЗ на {selected_date}:\n\n")
+                await callback.message.answer(f"{hometask}")
+            else:
+                await callback.message.answer(f"Дз с netschool на {selected_date} нет.")
+            await state.clear()
+            await callback.message.answer(
+                "Выберите действие:", reply_markup=keyboard_after_get_ht()
+            )
+        except Exception as e:
+            await callback.message.answer("ошибка на сторороне сервера попробуйте позже")
     await callback.answer()
 
 
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_ht_date_student)
 async def calendar_get_ht_student_logic(
-    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+        callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
 ):
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
