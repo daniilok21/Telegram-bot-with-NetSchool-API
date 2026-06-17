@@ -50,9 +50,9 @@ __all__ = ["NetSchool", "search_schools", "get_login_methods", "get_total_marks"
 log = logging.getLogger(__name__)
 
 _ESIA_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/120.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    "AppleWebKit/537.36 (KHTML, like Gecko)"
+    "Chrome/131.0.0.0 Safari/537.36"
 )
 
 _ESIA_API_HEADERS: dict[str, str] = {
@@ -610,10 +610,11 @@ class NetSchool:
         ctx = self._create_esia_ssl_context()
 
         async with httpx.AsyncClient(
-            headers={"user-agent": _ESIA_USER_AGENT},
-            follow_redirects=False,
-            verify=ctx,
-            timeout=timeout or 30,
+                headers={"user-agent": _ESIA_USER_AGENT},
+                follow_redirects=False,
+                verify=ctx,
+                timeout=timeout or 30,
+                trust_env=False,
         ) as esia_client:
 
           try:
