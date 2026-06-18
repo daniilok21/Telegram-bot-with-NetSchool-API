@@ -47,4 +47,4 @@ venv/
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
+*.pyddb/database.db
