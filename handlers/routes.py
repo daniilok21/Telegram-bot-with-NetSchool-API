@@ -37,6 +37,7 @@ async def save_auth_message(user_id, message):
 @router.message(Command("start"))
 async def start(message: Message):
     school = School(login="", password="", user_id=message.from_user.id)
+    await school._wait_init()
     sessions[message.from_user.id] = school
     print(sessions)
     new_or_old_user_check_and_create(message.from_user.id, message.from_user.username)
@@ -86,8 +87,7 @@ async def log_in(callback: CallbackQuery, state: FSMContext):
         school = sessions.get(callback.from_user.id)
         await delete_auth_messages(callback.from_user.id, callback.bot)
         if not school:
-            school = School(login="", password="", user_id=callback.from_user.id)
-            sessions[callback.from_user.id] = school
+            await callback.message.answer("нажмите /start")
         if not school.active:
             message = await callback.message.answer("Авторизация на сайт netschool\nВведите номер телефона(+7)",
                                           reply_markup=keyboard_back())

@@ -8,7 +8,7 @@ from aiogram.types import (
 from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
 
 from data.db_manager import *
-from .callbacks import sessions
+from .routes import sessions
 from .forms import *
 from .keyboards import *
 
@@ -113,11 +113,7 @@ async def calendar_get_ht_netschool_logic(
         try:
             selected_date = date.strftime("%d.%m.%Y")
             school = sessions.get(callback.from_user.id)
-            print(selected_date)
-            print("sessions =", sessions)
-            print("user_id =", callback.from_user.id)
-            print("school =", school)
-            print("type =", type(school))
+            await callback.message.answer(await school.today_homework(str(date.strftime("%Y, %-m, %-d"))))
             hometask = "get_ht нужен в метод calendar_get_ht_netschool_logic"  # get_ht(selected_date)
             await callback.message.answer("ВНИМАНИЕ! Информация актуальна на 'во сколько'. База данных загружена 'кем-то'.")
             if hometask:
@@ -131,9 +127,6 @@ async def calendar_get_ht_netschool_logic(
             )
         except Exception as e:
             school = sessions.get(callback.from_user.id)
-            print(school.log)
-            print(school.password)
-            print(school.user_id)
             await callback.message.answer(f"ошибка на сторороне сервера попробуйте позже\nошибка {e}")
     await callback.answer()
 

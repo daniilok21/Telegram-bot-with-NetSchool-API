@@ -31,7 +31,6 @@ dp.include_router(admins_router)
 dp.include_router(callback_router)
 dp.include_router(router)
 
-
 # ЗАПУСК БОТА
 async def main() -> None:
     try:

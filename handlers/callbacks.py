@@ -23,7 +23,6 @@ from api.start import School
 #смс пользователей id - message
 sms_feature = {}
 router = Router()
-sessions = {}
 
 
 @router.callback_query(lambda c: c.data == "view_ht")
