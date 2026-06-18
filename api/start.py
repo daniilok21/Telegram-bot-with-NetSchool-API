@@ -74,16 +74,20 @@ class School:
         diary = await self.ns.diary(start=date(y, m, d), end=date(y, m, d))
         lines = []
         if diary:
+            dt = str(diary.start.strftime("%d.%m.%Y"))
+            lines.append(dt)
             lines.append("🎒 Домашние задания")
             for day in diary.schedule:
                 for lessons in day.lessons:
                     homework = [asg.content for asg in lessons.assignments if asg.kind_abbr == "ДЗ"]
                     line = "\t"+"📌" + str(lessons.subject)+"\n"+"\t"+"📝   "+" ".join(homework)+"\n"
                     lines.append(line)
-        else:  
-            return "Без ДЗ"
+            if len(lines) > 2:
+                return "\n".join(lines)
+            return f"{dt}\nНет домашних заданий"
+        
 
-        return "\n".join(lines)
+        
 
     
   

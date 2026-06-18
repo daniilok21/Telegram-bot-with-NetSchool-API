@@ -3,7 +3,7 @@ from datetime import timedelta, datetime
 from importlib.resources import files
 import asyncio
 from logging import fatal
-
+from .routes import sessions
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -111,18 +111,17 @@ async def calendar_get_ht_netschool_logic(
     selected, date = await calendar.process_selection(callback, callback_data)
 
     if selected:
-        selected_date = date.strftime("%d.%m.%Y")
-        hometask = "get_ht нужен в метод calendar_get_ht_netschool_logic" # get_ht(selected_date)
-        await callback.message.answer("ВНИМАНИЕ! Информация актуальна на 'во сколько'. База данных загружена 'кем-то'.")
-        if hometask:
-            await callback.message.answer(f"ДЗ на {selected_date}:\n\n")
-            await callback.message.answer(f"{hometask}")
-        else:
-            await callback.message.answer(f"Дз с netschool на {selected_date} нет.")
-        await state.clear()
-        await callback.message.answer(
-            "Выберите действие:", reply_markup=keyboard_after_get_ht()
-        )
+        try:
+            selected_date = date.strftime("%d.%m.%Y")
+            school = sessions.get(callback.from_user.id)
+            await callback.message.answer(await school.today_homework(str(date.strftime("%Y, %-m, %-d"))))
+            await state.clear()
+            await callback.message.answer(
+                "Выберите действие:", reply_markup=keyboard_after_get_ht()
+            )
+        except Exception as e:
+            school = sessions.get(callback.from_user.id)
+            await callback.message.answer(f"ошибка на сторороне сервера попробуйте позже\nошибка {e}")
     await callback.answer()
 
 
