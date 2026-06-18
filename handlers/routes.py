@@ -37,7 +37,9 @@ async def save_auth_message(user_id, message):
 @router.message(Command("start"))
 async def start(message: Message):
     school = School(login="", password="", user_id=message.from_user.id)
+    await school._wait_init()
     sessions[message.from_user.id] = school
+    print(sessions)
     new_or_old_user_check_and_create(message.from_user.id, message.from_user.username)
     if check_user_is_allowed(message.from_user.id):
         if not user_has_settings(message.from_user.id):
@@ -85,8 +87,7 @@ async def log_in(callback: CallbackQuery, state: FSMContext):
         school = sessions.get(callback.from_user.id)
         await delete_auth_messages(callback.from_user.id, callback.bot)
         if not school:
-            school = School(login="", password="", user_id=callback.from_user.id)
-            sessions[callback.from_user.id] = school
+            await callback.message.answer("нажмите /start")
         if not school.active:
             message = await callback.message.answer("Авторизация на сайт netschool\nВведите номер телефона(+7)",
                                           reply_markup=keyboard_back())
@@ -142,16 +143,18 @@ async def netschool_password(message: Message, state: FSMContext):
     # sms_user мы передаем в сам класс, функция отрабатывает и отдает коробку уже библиотеке
 
     school = sessions[message.from_user.id]
-    school.log = login
-    school.password = password
+    school._log = login
+    school._password = password
     school.otp_callback = sms_user
 
     async def log_school():
         try:
             await school.login()
             sessions[message.from_user.id] = school
+            print(sessions)
             await delete_auth_messages(message.from_user.id, message.bot)
             await message.answer("успешно вошел", reply_markup=keyboard_logout())
+            print(message.from_user.id)
         except Exception as e:
             await message.answer(f"{e}")
 
