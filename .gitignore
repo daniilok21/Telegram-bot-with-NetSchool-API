@@ -48,3 +48,5 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyddb/database.db
+netschool_cap/netschool_cap.egg-info/
+db/database.db
