@@ -30,13 +30,14 @@ async def calendar_logic(
     selected, date = await calendar.process_selection(callback, callback_data)
 
     if selected:
-        await state.update_data(selected_date=date.strftime("%d.%m.%Y"))
+        selected_date = date.strftime('%d.%m.%Y')
         await callback.message.answer(
-            f"Выбрана дата: {date.strftime('%d.%m.%Y')}\n\n📝 Теперь отправьте ответ на домашнее задание.\n"
-            f"Вы можете отправить текст, фото, документ.\nКогда закончите, нажмите кнопку 'Завершить'.",
-            reply_markup=keyboard_save()
+            f"Выбрана дата: {selected_date}\n\n📖Теперь введите название предмета:\n",
+            reply_markup=keyboard_inline_subjects()
         )
-        await state.set_state(Form.waiting_homework_answer)
+        await state.update_data(selected_date=selected_date)
+        await state.set_state(Form.waiting_hw_subject)
+
     await callback.answer()
 
 
@@ -83,6 +84,7 @@ async def calendar_get_hw_logic(
     await callback.answer()
 
 
+
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_add_ht_date_student)
 async def calendar_add_from_user(
     callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
@@ -91,20 +93,13 @@ async def calendar_add_from_user(
     selected, date = await calendar.process_selection(callback, callback_data)
 
     if selected:
-        selected_date = date.strftime("%d.%m.%Y")
-        add_ht('qwerty', selected_date, "some_text", "some_text", "some_files",telegram_id=callback.from_user.id)
-
-        await state.clear()
-        await callback.message.answer(f'ДЗ добавлено на {selected_date}!')
-        user = get_user_by_telegram_id(callback.from_user.id)
-        user_name = user.username
-        await send_notify_to_users(callback.bot, "boolean_notify_new_homework", 'Новое ДЗ!',
-                                   f'Пользователь @{user_name}\nопубликовал ДЗ на {selected_date}!',
-                                   except_user_id=callback.from_user.id
-                                   )
+        selected_date = date.strftime('%d.%m.%Y')
         await callback.message.answer(
-            "Выберите действие:", reply_markup=keyboard_after_get_hw()
+            f"Выбрана дата: {selected_date}\n\n📖Теперь введите название предмета:\n",
+            reply_markup=keyboard_inline_subjects()
         )
+        await state.update_data(selected_date=selected_date)
+        await state.set_state(Form.waiting_ht_subject)
     await callback.answer()
 
 
@@ -147,23 +142,24 @@ async def calendar_get_ht_student_logic(
                 for answ in hometask[h]:
                     date_str_in_date = datetime.strptime(answ['created_at'].replace('T', ' '), "%Y-%m-%d %H:%M:%S")
                     text += f"Пользователь @{h} \nопубликовал задание {date_str_in_date.strftime("%d.%m.%Y")} в {date_str_in_date.strftime("%H:%M")}:\nпо предмету {answ['subject']}:\n\n"
-                    if text:
+                    if answ['description']:
                         text += f"{answ['description']}"
                     await callback.message.answer(text)
-                    for doc in answ["files_json"]:
+                    for doc in answ["files"]:
                         if doc["type"] == "photo":
+                            caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
                             await callback.message.answer_photo(
                                 doc["file_id"],
-                                caption=f"Фото от @{h} по предмету: {answ['subject']}",
+                                caption=f"Фото от @{h} по предмету {answ['subject']}.\n{caption_text}"
                             )
                         elif doc["type"] == "document":
+                            caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
                             await callback.message.answer_document(
                                 document=doc["file_id"],
-                                caption=f"Документ от @{h} по предмету {answ['subject']}:\n",
+                                caption=f"Документ от @{h} по предмету {answ['subject']}.\n{caption_text}",
                             )
                     text += "\n\n"
                     text = ""
-            await callback.message.answer(f"{hometask}")
         else:
             await callback.message.answer(f"ДЗ от пользователей на {selected_date} нет.")
         await state.clear()

@@ -7,7 +7,7 @@ from aiogram.types import (
     KeyboardButton,
 )
 
-from data.db_manager import get_settings
+from data.db_manager import get_settings, get_all_subjects
 
 
 def keyboard_inline_start():
@@ -33,6 +33,33 @@ def keyboard_inline_start():
             ],
         ]
     )
+    return keyboard
+
+
+def keyboard_inline_subjects():
+    keyboard_markup = []
+    row = []
+    count = 0
+    subjects = get_all_subjects()
+    if subjects:
+        for i in subjects:
+            count += 1
+            row.append(InlineKeyboardButton(text=f'{i["name"]}', callback_data=f'subject_{i["id"]}'))
+            if count == 2:
+                keyboard_markup.append(row.copy())
+                row.clear()
+                count = 0
+        if row:
+            keyboard_markup.append(row.copy())
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=keyboard_markup
+        )
+    else:
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text='Предметов не нашлось!', callback_data="back")]
+            ]
+        )
     return keyboard
 
 
@@ -88,6 +115,15 @@ def keyboard_save():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Завершить", callback_data="save_hw")]
+        ]
+    )
+    return keyboard
+
+
+def keyboard_save_ht():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Завершить", callback_data="save_ht")]
         ]
     )
     return keyboard

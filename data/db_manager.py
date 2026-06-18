@@ -34,6 +34,18 @@ def get_or_create_subject(subject_name):
     return subject_id
 
 
+def get_subject_by_id(subject_id):
+    db_sess = db_session.create_session()
+
+    subject = db_sess.query(Subject).filter(Subject.id == subject_id).first()
+
+    if not subject:
+        return False
+
+    db_sess.close()
+    return subject.name
+
+
 def get_all_subjects():
     db_sess = db_session.create_session()
     subjects = db_sess.query(Subject).filter(Subject.is_active == True).order_by(Subject.name).all()
@@ -206,13 +218,14 @@ def add_ht(subject, date, title=None, description=None, files=None, telegram_id=
         user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
         if not user:
             return False
-        task.user_id = telegram_id
+        task.user_id = user.id
 
     if files:
         task.set_files(files)
     db_sess.add(task)
     db_sess.commit()
     db_sess.close()
+    return True
 
 
 def get_ht(date, isFromNetSchool, subject=None):

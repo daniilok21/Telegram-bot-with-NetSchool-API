@@ -25,9 +25,38 @@ router = Router()
 sessions = {}
 
 
+@router.callback_query(F.data.startswith("subject_"))
+async def homework_subject(callback: CallbackQuery, state: FSMContext):
+    subject_id = int(callback.data.split("_")[1])
+    subjects = get_all_subjects()
+    current_subject = get_subject_by_id(subject_id)
+    current_state = await state.get_state()
+    if current_state == Form.waiting_hw_subject.state:
+        await callback.message.answer(
+            f"Выбранный предмет: {current_subject}\n\n"
+            f"📝 Теперь отправьте ответ на домашнее задание.\n"
+            f"Вы можете отправить текст, фото, документ.\nКогда закончите, нажмите кнопку 'Завершить'.",
+            reply_markup=keyboard_save()
+        )
+        await state.update_data(current_subject=current_subject)
+        await state.set_state(Form.waiting_homework_answer)
+    if current_state == Form.waiting_ht_subject:
+        await callback.message.answer(
+            f"Выбранный предмет: {current_subject}\n\n"
+            f"📝 Теперь отправьте домашнее задание.\n"
+            f"Вы можете отправить текст, фото, документ.\nКогда закончите, нажмите кнопку 'Завершить'.",
+            reply_markup=keyboard_save_ht()
+        )
+        await state.update_data(current_subject=current_subject)
+        await state.set_state(Form.waiting_hometask)
+    await callback.answer()
+
+
+
 @router.message(Form.waiting_homework_answer, F.photo | F.document | F.text)
 async def homework_answer(message: Message, state: FSMContext):
     data = await state.get_data()
+    print(data.get('selected_date'))
     selected_date = data.get("selected_date")
     text = data.get("answer", '')
     files = data.get("files", [])
@@ -52,6 +81,32 @@ async def homework_answer(message: Message, state: FSMContext):
     await state.update_data(files=files)
 
 
+@router.message(Form.waiting_hometask, F.photo | F.document | F.text)
+async def hometask_text(message: Message, state: FSMContext):
+    data = await state.get_data()
+    selected_date = data.get("selected_date")
+    text = data.get("answer", '')
+    files = data.get("files", [])
+    if message.text:
+        text += message.text + '\n'
+        await message.answer(f"📝 Текст добавлен!")
+    elif message.photo:
+        file_id = message.photo[-1].file_id
+        files.append({"file_id": file_id, "type": "photo", "caption": message.caption if message.caption else None})
+        await message.answer(f"📸 Фото добавлено! Всего файлов: {len(files)}")
+    elif message.document:
+        file_id = message.document.file_id
+        file_name = message.document.file_name
+        if not file_name:
+            file_name = "Document"
+        files.append({"file_id": file_id, "type": "document", "name": file_name,
+                      "caption": message.caption if message.caption else None})
+        await message.answer(f"Документ '{file_name}' добавлен! Всего файлов: {len(files)}")
+    else:
+        await message.answer("❌ Неподдерживаемый тип файла. Отправьте текст, фото или документ.")
+    await state.update_data(answer=text)
+    await state.update_data(files=files)
+
 @router.callback_query(lambda c: c.data == "back")
 async def back(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
@@ -66,19 +121,49 @@ async def save_hw(callback: CallbackQuery, state: FSMContext):
     date = data.get("selected_date")
     text = data.get("answer")
     files = data.get("files")
+    subject = data.get('current_subject', '?')
     if date:
         if files or text:
-            if add_hw(callback.from_user.id, "qwerty", date, text, files):
+            if add_hw(callback.from_user.id, subject, date, text, files):
                 await callback.message.answer(f"Ответ сохранен на дату\n{date}")
                 user = get_user_by_telegram_id(callback.from_user.id)
                 user_name = user.username
-                await send_notify_to_users(callback.bot, "boolean_notify_new_homework", 'Новый ответ на ДЗ!',
-                                           f'Пользователь @{user_name}\nопубликовал ответ на ДЗ на {date}!',
+                await send_notify_to_users(callback.bot, "boolean_notify_new_answers", 'Новый ответ на ДЗ!',
+                                           f'Пользователь @{user_name}\nопубликовал ответ на ДЗ по предмету {subject} на {date}!',
                                            except_user_id=callback.from_user.id)
             else:
                 await callback.message.answer(f"Ошибка!")
         else:
             await callback.message.answer("Ошибка! Нельзя сохранять пустой ответ!")
+    else:
+        await callback.message.answer("Ошибка!")
+    await callback.message.answer(
+        "Выберите действие:", reply_markup=keyboard_inline_start()
+    )
+    await callback.answer()
+    await state.clear()
+
+
+@router.callback_query(lambda c: c.data == "save_ht")
+async def save_ht(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    date = data.get("selected_date")
+    text = data.get("answer")
+    files = data.get("files")
+    subject = data.get('current_subject', '?')
+    if date:
+        if files or text:
+            if add_ht(subject, date, description=text, files=files, telegram_id=callback.from_user.id):
+                await callback.message.answer(f"Задание сохранено на дату\n{date}")
+                user = get_user_by_telegram_id(callback.from_user.id)
+                user_name = user.username
+                await send_notify_to_users(callback.bot, "boolean_notify_new_homework", 'Новое ДЗ!',
+                                           f'Пользователь @{user_name}\nопубликовал ДЗ по предмету {subject} на {date}!',
+                                           except_user_id=callback.from_user.id)
+            else:
+                await callback.message.answer(f"Ошибка!")
+        else:
+            await callback.message.answer("Ошибка! Нельзя сохранять пустое задание!")
     else:
         await callback.message.answer("Ошибка!")
     await callback.message.answer(
