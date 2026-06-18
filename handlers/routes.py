@@ -143,8 +143,8 @@ async def netschool_password(message: Message, state: FSMContext):
     # sms_user мы передаем в сам класс, функция отрабатывает и отдает коробку уже библиотеке
 
     school = sessions[message.from_user.id]
-    school.log = login
-    school.password = password
+    school._log = login
+    school._password = password
     school.otp_callback = sms_user
 
     async def log_school():
