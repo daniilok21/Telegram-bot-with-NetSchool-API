@@ -38,6 +38,7 @@ async def save_auth_message(user_id, message):
 async def start(message: Message):
     school = School(login="", password="", user_id=message.from_user.id)
     sessions[message.from_user.id] = school
+    print(sessions)
     new_or_old_user_check_and_create(message.from_user.id, message.from_user.username)
     if check_user_is_allowed(message.from_user.id):
         if not user_has_settings(message.from_user.id):
@@ -150,8 +151,10 @@ async def netschool_password(message: Message, state: FSMContext):
         try:
             await school.login()
             sessions[message.from_user.id] = school
+            print(sessions)
             await delete_auth_messages(message.from_user.id, message.bot)
             await message.answer("успешно вошел", reply_markup=keyboard_logout())
+            print(message.from_user.id)
         except Exception as e:
             await message.answer(f"{e}")
 

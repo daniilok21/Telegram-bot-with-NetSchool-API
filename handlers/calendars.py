@@ -112,7 +112,12 @@ async def calendar_get_ht_netschool_logic(
     if selected:
         try:
             selected_date = date.strftime("%d.%m.%Y")
-            school = sessions[callback.message.from_user.id]
+            school = sessions.get(callback.from_user.id)
+            print(selected_date)
+            print("sessions =", sessions)
+            print("user_id =", callback.from_user.id)
+            print("school =", school)
+            print("type =", type(school))
             hometask = "get_ht нужен в метод calendar_get_ht_netschool_logic"  # get_ht(selected_date)
             await callback.message.answer("ВНИМАНИЕ! Информация актуальна на 'во сколько'. База данных загружена 'кем-то'.")
             if hometask:
@@ -125,7 +130,11 @@ async def calendar_get_ht_netschool_logic(
                 "Выберите действие:", reply_markup=keyboard_after_get_ht()
             )
         except Exception as e:
-            await callback.message.answer("ошибка на сторороне сервера попробуйте позже")
+            school = sessions.get(callback.from_user.id)
+            print(school.log)
+            print(school.password)
+            print(school.user_id)
+            await callback.message.answer(f"ошибка на сторороне сервера попробуйте позже\nошибка {e}")
     await callback.answer()
 
 

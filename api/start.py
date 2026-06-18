@@ -79,9 +79,8 @@ class School:
         else:  
             return "Без ДЗ"
 
-        return "\n".join()
-        
-       
+        return "\n".join(lines)
+
     
   
         
