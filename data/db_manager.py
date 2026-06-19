@@ -188,7 +188,7 @@ def get_hw(date, subject_name=None):
     if subject_name:
         subject = db_sess.query(Subject).filter(Subject.name == subject_name).first()
         if subject:
-            res = res.filter(HomeworkAnswer.subject == subject.id)
+            res = res.filter(HomeworkAnswer.subject_id == subject.id)
     res.order_by(HomeworkAnswer.created_at)
 
     homework = res.all()
@@ -233,7 +233,7 @@ def get_ht(date, isFromNetSchool, subject=None):
 
     res = db_sess.query(HomeworkTask).filter(HomeworkTask.date == date)
     if subject:
-        res = res.filter(HomeworkTask.subject == subject)
+        res = res.filter(HomeworkTask.subject_id == subject)
 
     if isFromNetSchool:
         res = res.filter(HomeworkTask.user_id == None)

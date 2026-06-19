@@ -10,6 +10,8 @@ class Form(StatesGroup):
     selected_date = State()
     answer = State()
     current_subject = State()
+    waiting_get_hw_date_by_subject = State()
+    waiting_get_hw_date_by_subject2 = State()
     waiting_get_hw_date = State()
     waiting_get_ht_date_netschool = State()
     waiting_get_ht_date_student = State()
