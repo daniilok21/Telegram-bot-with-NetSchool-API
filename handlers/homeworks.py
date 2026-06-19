@@ -56,7 +56,6 @@ async def homework_subject(callback: CallbackQuery, state: FSMContext):
 @router.message(Form.waiting_homework_answer, F.photo | F.document | F.text)
 async def homework_answer(message: Message, state: FSMContext):
     data = await state.get_data()
-    print(data.get('selected_date'))
     selected_date = data.get("selected_date")
     text = data.get("answer", '')
     files = data.get("files", [])
