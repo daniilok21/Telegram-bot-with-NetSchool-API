@@ -31,6 +31,7 @@ async def homework_subject(callback: CallbackQuery, state: FSMContext):
     subjects = get_all_subjects()
     current_subject = get_subject_by_id(subject_id)
     current_state = await state.get_state()
+    data = await state.get_data()
     if current_state == Form.waiting_hw_subject.state:
         await callback.message.answer(
             f"Выбранный предмет: {current_subject}\n\n"
@@ -40,7 +41,7 @@ async def homework_subject(callback: CallbackQuery, state: FSMContext):
         )
         await state.update_data(current_subject=current_subject)
         await state.set_state(Form.waiting_homework_answer)
-    if current_state == Form.waiting_ht_subject:
+    elif current_state == Form.waiting_ht_subject:
         await callback.message.answer(
             f"Выбранный предмет: {current_subject}\n\n"
             f"📝 Теперь отправьте домашнее задание.\n"
@@ -49,14 +50,80 @@ async def homework_subject(callback: CallbackQuery, state: FSMContext):
         )
         await state.update_data(current_subject=current_subject)
         await state.set_state(Form.waiting_hometask)
-    await callback.answer()
+    elif current_state == Form.waiting_get_hw_date_by_subject2:
+        selected_date = data.get('selected_date')
+        homework = get_hw(selected_date, subject_name=current_subject)
+        if homework:
+            await callback.message.answer(f"Вот ответы на {selected_date} по предмету: {current_subject}\n\n")
+            text = ""
+            for h in homework:
+                for answ in homework[h]:
+                    text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}\nпо предмету {answ['subject']}:\n"
+                    if answ['text']:
+                        text += f"{answ['text']}"
+                    await callback.message.answer(text)
+                    for doc in answ["files"]:
+                        if doc["type"] == "photo":
+                            caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
+                            await callback.message.answer_photo(
+                                doc["file_id"],
+                                caption=f"Фото от @{h} по предмету {answ['subject']}.\n{caption_text}"
+                            )
+                        elif doc["type"] == "document":
+                            caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
+                            await callback.message.answer_document(
+                                document=doc["file_id"],
+                                caption=f"Документ от @{h} по предмету {answ['subject']}.\n{caption_text}",
+                            )
+                    text += "\n\n"
+                    text = ""
+        else:
+            await callback.message.answer(f"Ответов на {selected_date} по предмету {current_subject} нет.")
+        await state.clear()
+        await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_after_get_hw()
+        )
+        await state.clear()
+    elif current_state == Form.waiting_get_ht_date_by_subject2:
+        selected_date = data.get('selected_date')
+        hometask = get_ht(selected_date, isFromNetSchool=False, subject_name=current_subject)
+        if hometask:
+            text = f"ДЗ на {selected_date} по предмету {current_subject}:\n\n"
+            for h in hometask:
+                for answ in hometask[h]:
+                    date_str_in_date = datetime.strptime(answ['created_at'].replace('T', ' '), "%Y-%m-%d %H:%M:%S")
+                    text += f"Пользователь @{h} \nопубликовал задание {date_str_in_date.strftime("%d.%m.%Y")} в {date_str_in_date.strftime("%H:%M")}:\nпо предмету {answ['subject']}:\n\n"
+                    if answ['description']:
+                        text += f"{answ['description']}"
+                    await callback.message.answer(text)
+                    for doc in answ["files"]:
+                        if doc["type"] == "photo":
+                            caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
+                            await callback.message.answer_photo(
+                                doc["file_id"],
+                                caption=f"Фото от @{h} по предмету {answ['subject']}.\n{caption_text}"
+                            )
+                        elif doc["type"] == "document":
+                            caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
+                            await callback.message.answer_document(
+                                document=doc["file_id"],
+                                caption=f"Документ от @{h} по предмету {answ['subject']}.\n{caption_text}",
+                            )
+                    text += "\n\n"
+                    text = ""
+        else:
+            await callback.message.answer(f"ДЗ от пользователей на {selected_date} по предмету {current_subject} нет.")
+        await state.clear()
+        await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_after_get_ht_student()
+        )
 
+    await callback.answer()
 
 
 @router.message(Form.waiting_homework_answer, F.photo | F.document | F.text)
 async def homework_answer(message: Message, state: FSMContext):
     data = await state.get_data()
-    print(data.get('selected_date'))
     selected_date = data.get("selected_date")
     text = data.get("answer", '')
     files = data.get("files", [])
@@ -79,6 +146,28 @@ async def homework_answer(message: Message, state: FSMContext):
         await message.answer("❌ Неподдерживаемый тип файла. Отправьте текст, фото или документ.")
     await state.update_data(answer=text)
     await state.update_data(files=files)
+
+
+@router.callback_query(lambda c: c.data == "get_hw_subject")
+async def get_hw_subject(callback: CallbackQuery, state: FSMContext):
+    calendar = SimpleCalendar()
+    await state.set_state(Form.waiting_get_hw_date_by_subject)
+    await callback.message.answer(
+        "📅 Выберите дату домашнего задания:",
+        reply_markup=await calendar.start_calendar(),
+    )
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "get_ht_subject")
+async def get_ht_subject(callback: CallbackQuery, state: FSMContext):
+    calendar = SimpleCalendar()
+    await state.set_state(Form.waiting_get_ht_date_by_subject)
+    await callback.message.answer(
+        "📅 Выберите дату домашнего задания:",
+        reply_markup=await calendar.start_calendar(),
+    )
+    await callback.answer()
 
 
 @router.message(Form.waiting_hometask, F.photo | F.document | F.text)

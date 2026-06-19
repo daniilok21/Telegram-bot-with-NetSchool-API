@@ -41,7 +41,9 @@ async def get_ht_netschool(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(lambda c: c.data == "get_ht_students" or c.data == 'get_ht_date_student')
 async def get_ht_students(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer("Выберите:", reply_markup=keyboard_inline_add_or_search_ht())
+    calendar = SimpleCalendar()
+    await state.set_state(Form.waiting_get_ht_date_student)
+    await callback.message.answer("📅 Выберите дату домашнего задания:", reply_markup=await calendar.start_calendar())
     await callback.answer()
 
 
@@ -50,14 +52,6 @@ async def add_ht_student(callback: CallbackQuery, state: FSMContext):
     calendar = SimpleCalendar()
     await state.set_state(Form.waiting_add_ht_date_student)
     await callback.message.answer("📅 Выберите дату для добавления домашнего задания:", reply_markup=await calendar.start_calendar())
-    await callback.answer()
-
-
-@router.callback_query(lambda c: c.data == "search_ht_students")
-async def search_ht_students(callback: CallbackQuery, state: FSMContext):
-    calendar = SimpleCalendar()
-    await state.set_state(Form.waiting_get_ht_date_student)
-    await callback.message.answer("📅 Выберите дату домашнего задания:", reply_markup=await calendar.start_calendar())
     await callback.answer()
 
 

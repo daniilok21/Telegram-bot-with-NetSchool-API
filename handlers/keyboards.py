@@ -1,5 +1,3 @@
-from gc import callbacks
-
 from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
@@ -16,20 +14,20 @@ def keyboard_inline_start():
             [
                 InlineKeyboardButton(text="📚 Посмотреть ДЗ", callback_data="view_ht"),
                 InlineKeyboardButton(
-                    text="➕ Добавить ответ на ДЗ", callback_data="add_answer_ht"
+                    text="📖 Посмотреть ответы", callback_data="view_answer_ht"
                 ),
             ],
             [
                 InlineKeyboardButton(
-                    text="📖 Посмотреть ответы на ДЗ", callback_data="view_answer_ht"
+                    text="➕ Создать ДЗ", callback_data="add_ht_student"
                 ),
                 InlineKeyboardButton(
-                    text="📊 Средний балл", callback_data="average_score"
+                    text="➕ Добавить ответ", callback_data="add_answer_ht"
                 ),
             ],
             [
+                InlineKeyboardButton(text="📊 Средний балл", callback_data="average_score"),
                 InlineKeyboardButton(text="⚙️ Настройки", callback_data="settings"),
-                InlineKeyboardButton(text="👤 Авторизоваться", callback_data="log_in"),
             ],
         ]
     )
@@ -68,12 +66,20 @@ def keyboard_inline_view_hw():
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="📖 Все ответы на завтра", callback_data="all_hw_tomorrow"
+                    text="📖 На завтра", callback_data="all_hw_tomorrow"
                 ),
                 InlineKeyboardButton(
-                    text="🔍 Поиск по дате", callback_data="get_hw_date"
+                    text="🔍 По дате", callback_data="get_hw_date"
                 ),
             ],
+            [
+                InlineKeyboardButton(
+                    text="📚 По предмету", callback_data="get_hw_subject"
+                ),
+                InlineKeyboardButton(
+                    text="◀️ Назад ", callback_data="back"
+                ),
+            ]
         ]
     )
     return keyboard
@@ -84,28 +90,20 @@ def keyboard_inline_view_ht():
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="📖 ДЗ через NetSchool", callback_data="get_ht_netschool"
+                    text="📖 Из NetSchool", callback_data="get_ht_netschool"
                 ),
                 InlineKeyboardButton(
-                    text="👤 ДЗ от учеников", callback_data="get_ht_students"
+                    text="👤 От учеников", callback_data="get_ht_students"
                 ),
             ],
-        ]
-    )
-    return keyboard
-
-
-def keyboard_inline_add_or_search_ht():
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="➕ Добавить ДЗ", callback_data="add_ht_student"
+                    text="📚 По предмету", callback_data="get_ht_subject"
                 ),
                 InlineKeyboardButton(
-                    text="🔍 Посмотреть ДЗ", callback_data="search_ht_students"
+                    text="◀️ Назад ", callback_data="back"
                 ),
-            ],
+            ]
         ]
     )
     return keyboard
@@ -114,7 +112,10 @@ def keyboard_inline_add_or_search_ht():
 def keyboard_save():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Завершить", callback_data="save_hw")]
+            [
+                InlineKeyboardButton(text="Завершить", callback_data="save_hw"),
+                InlineKeyboardButton(text="Отмена", callback_data="back"),
+            ]
         ]
     )
     return keyboard
@@ -123,7 +124,10 @@ def keyboard_save():
 def keyboard_save_ht():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Завершить", callback_data="save_ht")]
+            [
+                InlineKeyboardButton(text="Завершить", callback_data="save_ht"),
+                InlineKeyboardButton(text="Отмена", callback_data="back"),
+            ]
         ]
     )
     return keyboard
@@ -140,11 +144,18 @@ def keyboard_after_get_hw():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Назад", callback_data="back"),
                 InlineKeyboardButton(
                     text="🔍 Поиск по дате", callback_data="get_hw_date"
                 ),
+                InlineKeyboardButton(
+                    text="📚 По предмету", callback_data="get_hw_subject"
+                ),
             ],
+            [
+                InlineKeyboardButton(
+                    text="◀️ Назад", callback_data="back"
+                ),
+            ]
         ]
     )
     return keyboard
@@ -153,9 +164,16 @@ def keyboard_after_get_ht_student():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Назад", callback_data="back"),
                 InlineKeyboardButton(
-                    text="🔍 Поиск по дате ДЗ от пользователей", callback_data="get_ht_date_student"
+                    text="🔍 Поиск по дате", callback_data="get_ht_date_student"
+                ),
+                InlineKeyboardButton(
+                    text="📚 По предмету", callback_data="get_ht_subject"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="◀️ Назад", callback_data="back"
                 ),
             ],
         ]
@@ -166,7 +184,7 @@ def keyboard_back():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Назад", callback_data="back"),
+                InlineKeyboardButton(text="◀️ Назад", callback_data="back"),
             ],
         ]
     )
@@ -176,7 +194,7 @@ def keyboard_after_get_ht():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Назад", callback_data="back"),
+                InlineKeyboardButton(text="◀️ Назад", callback_data="back"),
                 InlineKeyboardButton(
                     text="🔍 Поиск по дате в NetSchool", callback_data="get_ht_date"
                 ),
@@ -205,7 +223,10 @@ def keyboard_settings_menu():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🔔 Уведомления", callback_data="notify"),
-             InlineKeyboardButton(text="Назад", callback_data="back")],
+             InlineKeyboardButton(text="👤 Авторизоваться", callback_data="log_in"),
+        ],
+        [
+            InlineKeyboardButton(text="◀️ Назад", callback_data="back")],
         ]
     )
     return keyboard
@@ -221,7 +242,7 @@ def keyboard_settings_notify(telegram_id):
             [InlineKeyboardButton(text=f"{'✅' if settings_value['boolean_notify_admins'] else '❌'} Уведомления админов", callback_data="toggle_notify_admins")],
             [InlineKeyboardButton(text=f"{'✅' if settings_value['boolean_notify_new_answers'] else '❌'} Новые ответы", callback_data="toggle_notify_new_answers")],
             [InlineKeyboardButton(text=f"{'✅' if settings_value['boolean_notify_new_homework'] else '❌'} Новые ДЗ", callback_data="toggle_notify_new_homework")],
-            [InlineKeyboardButton(text="Назад", callback_data="back")]
+            [InlineKeyboardButton(text="◀️ Назад", callback_data="back")]
         ]
     )
     return keyboard

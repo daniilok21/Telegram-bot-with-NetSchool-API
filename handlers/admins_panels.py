@@ -32,7 +32,8 @@ async def admin(message: Message):
                              "`/users` - посмотреть список пользователей\n"
                              "`/add_subject <subject_name>` - добавить предмет\n"
                              "`/set_is_active_subject <subject_id> <1/0>` - активация/деактивация предмета\n"
-                             "`/get_subjects` - список доступных предметов\n",
+                             "`/get_subjects` - список доступных предметов\n"
+                             "`/say <message>` - уведомление всем\n",
                              parse_mode="Markdown")
     else:
         await message.answer(

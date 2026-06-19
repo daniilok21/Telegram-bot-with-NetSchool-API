@@ -84,6 +84,35 @@ async def calendar_get_hw_logic(
     await callback.answer()
 
 
+@router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_hw_date_by_subject)
+async def calendar_get_hw_date_by_subject(
+    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+):
+    calendar = SimpleCalendar()
+    selected, date = await calendar.process_selection(callback, callback_data)
+
+    if selected:
+        await callback.message.answer("Выберите предмет:", reply_markup=keyboard_inline_subjects())
+        await state.set_state(Form.waiting_get_hw_date_by_subject2)
+        await state.update_data(selected_date=date.strftime("%d.%m.%Y"))
+
+    await callback.answer()
+
+
+@router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_get_ht_date_by_subject)
+async def calendar_get_ht_date_by_subject(
+    callback: CallbackQuery, callback_data: SimpleCalendarCallback, state: FSMContext
+):
+    calendar = SimpleCalendar()
+    selected, date = await calendar.process_selection(callback, callback_data)
+
+    if selected:
+        await callback.message.answer("Выберите предмет:", reply_markup=keyboard_inline_subjects())
+        await state.set_state(Form.waiting_get_ht_date_by_subject2)
+        await state.update_data(selected_date=date.strftime("%d.%m.%Y"))
+
+    await callback.answer()
+
 
 @router.callback_query(SimpleCalendarCallback.filter(), Form.waiting_add_ht_date_student)
 async def calendar_add_from_user(
