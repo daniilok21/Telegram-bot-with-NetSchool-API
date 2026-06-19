@@ -164,9 +164,16 @@ def keyboard_after_get_ht_student():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="◀️ Назад", callback_data="back"),
                 InlineKeyboardButton(
                     text="🔍 Поиск по дате", callback_data="get_ht_date_student"
+                ),
+                InlineKeyboardButton(
+                    text="📚 По предмету", callback_data="get_ht_subject"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="◀️ Назад", callback_data="back"
                 ),
             ],
         ]

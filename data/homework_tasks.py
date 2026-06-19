@@ -17,8 +17,8 @@ class HomeworkTask(SqlAlchemyBase):
     title = Column(String(500), nullable=True)
     description = Column(Text, nullable=True)
     files_json = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, default=datetime.now(), nullable=False)
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
 
     user = sqlalchemy.orm.relationship("User", back_populates="homework_tasks")
     subject_connection = sqlalchemy.orm.relationship("Subject", back_populates="homework_tasks")

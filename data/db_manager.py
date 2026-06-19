@@ -228,12 +228,14 @@ def add_ht(subject, date, title=None, description=None, files=None, telegram_id=
     return True
 
 
-def get_ht(date, isFromNetSchool, subject=None):
+def get_ht(date, isFromNetSchool, subject_name=None):
     db_sess = db_session.create_session()
 
     res = db_sess.query(HomeworkTask).filter(HomeworkTask.date == date)
-    if subject:
-        res = res.filter(HomeworkTask.subject_id == subject)
+    if subject_name:
+        subject = db_sess.query(Subject).filter(Subject.name == subject_name).first()
+        if subject:
+            res = res.filter(HomeworkTask.subject_id == subject.id)
 
     if isFromNetSchool:
         res = res.filter(HomeworkTask.user_id == None)
