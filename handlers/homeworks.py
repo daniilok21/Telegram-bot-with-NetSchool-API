@@ -19,6 +19,8 @@ from data.db_manager import *
 from .keyboards import *
 from .forms import *
 from api.start import School
+from .routes import delete_user_messages, add_user_message, delete_auth_messages
+
 #смс пользователей id - message
 sms_feature = {}
 router = Router()
@@ -32,57 +34,58 @@ async def homework_subject(callback: CallbackQuery, state: FSMContext):
     current_subject = get_subject_by_id(subject_id)
     current_state = await state.get_state()
     data = await state.get_data()
+    msgs = []
     if current_state == Form.waiting_hw_subject.state:
-        await callback.message.answer(
+        msgs.append(await callback.message.answer(
             f"Выбранный предмет: {current_subject}\n\n"
             f"📝 Теперь отправьте ответ на домашнее задание.\n"
             f"Вы можете отправить текст, фото, документ.\nКогда закончите, нажмите кнопку 'Завершить'.",
             reply_markup=keyboard_save()
-        )
+        ))
         await state.update_data(current_subject=current_subject)
         await state.set_state(Form.waiting_homework_answer)
     elif current_state == Form.waiting_ht_subject:
-        await callback.message.answer(
+        msgs.append(await callback.message.answer(
             f"Выбранный предмет: {current_subject}\n\n"
             f"📝 Теперь отправьте домашнее задание.\n"
             f"Вы можете отправить текст, фото, документ.\nКогда закончите, нажмите кнопку 'Завершить'.",
             reply_markup=keyboard_save_ht()
-        )
+        ))
         await state.update_data(current_subject=current_subject)
         await state.set_state(Form.waiting_hometask)
     elif current_state == Form.waiting_get_hw_date_by_subject2:
         selected_date = data.get('selected_date')
         homework = get_hw(selected_date, subject_name=current_subject)
         if homework:
-            await callback.message.answer(f"Вот ответы на {selected_date} по предмету: {current_subject}\n\n")
+            msgs.append(await callback.message.answer(f"Вот ответы на {selected_date} по предмету: {current_subject}\n\n"))
             text = ""
             for h in homework:
                 for answ in homework[h]:
                     text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}\nпо предмету {answ['subject']}:\n"
                     if answ['text']:
                         text += f"{answ['text']}"
-                    await callback.message.answer(text)
+                    msgs.append(await callback.message.answer(text))
                     for doc in answ["files"]:
                         if doc["type"] == "photo":
                             caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
-                            await callback.message.answer_photo(
+                            msgs.append(await callback.message.answer_photo(
                                 doc["file_id"],
                                 caption=f"Фото от @{h} по предмету {answ['subject']}.\n{caption_text}"
-                            )
+                            ))
                         elif doc["type"] == "document":
                             caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
-                            await callback.message.answer_document(
+                            msgs.append(await callback.message.answer_document(
                                 document=doc["file_id"],
                                 caption=f"Документ от @{h} по предмету {answ['subject']}.\n{caption_text}",
-                            )
+                            ))
                     text += "\n\n"
                     text = ""
         else:
-            await callback.message.answer(f"Ответов на {selected_date} по предмету {current_subject} нет.")
+            msgs.append(await callback.message.answer(f"Ответов на {selected_date} по предмету {current_subject} нет."))
         await state.clear()
-        await callback.message.answer(
+        msgs.append(await callback.message.answer(
             "Выберите действие:", reply_markup=keyboard_after_get_hw()
-        )
+        ))
         await state.clear()
     elif current_state == Form.waiting_get_ht_date_by_subject2:
         selected_date = data.get('selected_date')
@@ -95,29 +98,30 @@ async def homework_subject(callback: CallbackQuery, state: FSMContext):
                     text += f"Пользователь @{h} \nопубликовал задание {date_str_in_date.strftime("%d.%m.%Y")} в {date_str_in_date.strftime("%H:%M")}:\nпо предмету {answ['subject']}:\n\n"
                     if answ['description']:
                         text += f"{answ['description']}"
-                    await callback.message.answer(text)
+                    msgs.append(await callback.message.answer(text))
                     for doc in answ["files"]:
                         if doc["type"] == "photo":
                             caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
-                            await callback.message.answer_photo(
+                            msgs.append(await callback.message.answer_photo(
                                 doc["file_id"],
                                 caption=f"Фото от @{h} по предмету {answ['subject']}.\n{caption_text}"
-                            )
+                            ))
                         elif doc["type"] == "document":
                             caption_text = f"\nПодпись: {doc['caption']}" if doc['caption'] else ''
-                            await callback.message.answer_document(
+                            msgs.append(await callback.message.answer_document(
                                 document=doc["file_id"],
                                 caption=f"Документ от @{h} по предмету {answ['subject']}.\n{caption_text}",
-                            )
+                            ))
                     text += "\n\n"
                     text = ""
         else:
-            await callback.message.answer(f"ДЗ от пользователей на {selected_date} по предмету {current_subject} нет.")
+            msgs.append(await callback.message.answer(f"ДЗ от пользователей на {selected_date} по предмету {current_subject} нет."))
         await state.clear()
-        await callback.message.answer(
+        msgs.append(await callback.message.answer(
             "Выберите действие:", reply_markup=keyboard_after_get_ht_student()
-        )
-
+        ))
+    for msg in msgs:
+        await add_user_message(callback.from_user.id, msg.message_id)
     await callback.answer()
 
 
@@ -129,11 +133,11 @@ async def homework_answer(message: Message, state: FSMContext):
     files = data.get("files", [])
     if message.text:
         text += message.text + '\n'
-        await message.answer(f"📝 Текст добавлен!")
+        msg = await message.answer(f"📝 Текст добавлен!")
     elif message.photo:
         file_id = message.photo[-1].file_id
         files.append({"file_id": file_id, "type": "photo", "caption": message.caption if message.caption else None})
-        await message.answer(f"📸 Фото добавлено! Всего файлов: {len(files)}")
+        msg = await message.answer(f"📸 Фото добавлено! Всего файлов: {len(files)}")
     elif message.document:
         file_id = message.document.file_id
         file_name = message.document.file_name
@@ -141,9 +145,10 @@ async def homework_answer(message: Message, state: FSMContext):
             file_name = "Document"
         files.append({"file_id": file_id, "type": "document", "name": file_name,
                       "caption": message.caption if message.caption else None})
-        await message.answer(f"Документ '{file_name}' добавлен! Всего файлов: {len(files)}")
+        msg = await message.answer(f"Документ '{file_name}' добавлен! Всего файлов: {len(files)}")
     else:
-        await message.answer("❌ Неподдерживаемый тип файла. Отправьте текст, фото или документ.")
+        msg = await message.answer("❌ Неподдерживаемый тип файла. Отправьте текст, фото или документ.")
+    await add_user_message(message.from_user.id, msg.message_id)
     await state.update_data(answer=text)
     await state.update_data(files=files)
 
@@ -152,10 +157,11 @@ async def homework_answer(message: Message, state: FSMContext):
 async def get_hw_subject(callback: CallbackQuery, state: FSMContext):
     calendar = SimpleCalendar()
     await state.set_state(Form.waiting_get_hw_date_by_subject)
-    await callback.message.answer(
+    msg = await callback.message.answer(
         "📅 Выберите дату домашнего задания:",
         reply_markup=await calendar.start_calendar(),
     )
+    await add_user_message(callback.from_user.id, msg.message_id)
     await callback.answer()
 
 
@@ -163,10 +169,11 @@ async def get_hw_subject(callback: CallbackQuery, state: FSMContext):
 async def get_ht_subject(callback: CallbackQuery, state: FSMContext):
     calendar = SimpleCalendar()
     await state.set_state(Form.waiting_get_ht_date_by_subject)
-    await callback.message.answer(
+    msg = await callback.message.answer(
         "📅 Выберите дату домашнего задания:",
         reply_markup=await calendar.start_calendar(),
     )
+    await add_user_message(callback.from_user.id, msg.message_id)
     await callback.answer()
 
 
@@ -178,11 +185,11 @@ async def hometask_text(message: Message, state: FSMContext):
     files = data.get("files", [])
     if message.text:
         text += message.text + '\n'
-        await message.answer(f"📝 Текст добавлен!")
+        msg = await message.answer(f"📝 Текст добавлен!")
     elif message.photo:
         file_id = message.photo[-1].file_id
         files.append({"file_id": file_id, "type": "photo", "caption": message.caption if message.caption else None})
-        await message.answer(f"📸 Фото добавлено! Всего файлов: {len(files)}")
+        msg = await message.answer(f"📸 Фото добавлено! Всего файлов: {len(files)}")
     elif message.document:
         file_id = message.document.file_id
         file_name = message.document.file_name
@@ -190,17 +197,21 @@ async def hometask_text(message: Message, state: FSMContext):
             file_name = "Document"
         files.append({"file_id": file_id, "type": "document", "name": file_name,
                       "caption": message.caption if message.caption else None})
-        await message.answer(f"Документ '{file_name}' добавлен! Всего файлов: {len(files)}")
+        msg = await message.answer(f"Документ '{file_name}' добавлен! Всего файлов: {len(files)}")
     else:
-        await message.answer("❌ Неподдерживаемый тип файла. Отправьте текст, фото или документ.")
+        msg = await message.answer("❌ Неподдерживаемый тип файла. Отправьте текст, фото или документ.")
+    await add_user_message(message.from_user.id, msg.message_id)
     await state.update_data(answer=text)
     await state.update_data(files=files)
 
 @router.callback_query(lambda c: c.data == "back")
 async def back(callback: CallbackQuery, state: FSMContext):
-    await callback.message.answer(
+    await delete_user_messages(callback.from_user.id, callback.bot, not_delete_last=0)
+    await delete_auth_messages(callback.from_user.id, callback.bot)
+    msg = await callback.message.answer(
         "Выберите действие:", reply_markup=keyboard_inline_start()
     )
+    await add_user_message(callback.from_user.id, msg.message_id)
     await state.clear()
 
 
@@ -214,21 +225,24 @@ async def save_hw(callback: CallbackQuery, state: FSMContext):
     if date:
         if files or text:
             if add_hw(callback.from_user.id, subject, date, text, files):
-                await callback.message.answer(f"Ответ сохранен на дату\n{date}")
+                msg = await callback.message.answer(f"Ответ сохранен на дату\n{date}")
                 user = get_user_by_telegram_id(callback.from_user.id)
                 user_name = user.username
                 await send_notify_to_users(callback.bot, "boolean_notify_new_answers", 'Новый ответ на ДЗ!',
                                            f'Пользователь @{user_name}\nопубликовал ответ на ДЗ по предмету {subject} на {date}!',
                                            except_user_id=callback.from_user.id)
             else:
-                await callback.message.answer(f"Ошибка!")
+                msg = await callback.message.answer(f"Ошибка!")
         else:
-            await callback.message.answer("Ошибка! Нельзя сохранять пустой ответ!")
+            msg = await callback.message.answer("Ошибка! Нельзя сохранять пустой ответ!")
     else:
-        await callback.message.answer("Ошибка!")
-    await callback.message.answer(
+        msg = await callback.message.answer("Ошибка!")
+    await add_user_message(callback.from_user.id, msg.message_id)
+    msg = await callback.message.answer(
         "Выберите действие:", reply_markup=keyboard_inline_start()
     )
+    await add_user_message(callback.from_user.id, msg.message_id)
+    await delete_user_messages(callback.from_user.id, callback.bot)
     await callback.answer()
     await state.clear()
 
@@ -243,21 +257,24 @@ async def save_ht(callback: CallbackQuery, state: FSMContext):
     if date:
         if files or text:
             if add_ht(subject, date, description=text, files=files, telegram_id=callback.from_user.id):
-                await callback.message.answer(f"Задание сохранено на дату\n{date}")
+                msg = await callback.message.answer(f"Задание сохранено на дату\n{date}")
                 user = get_user_by_telegram_id(callback.from_user.id)
                 user_name = user.username
                 await send_notify_to_users(callback.bot, "boolean_notify_new_homework", 'Новое ДЗ!',
                                            f'Пользователь @{user_name}\nопубликовал ДЗ по предмету {subject} на {date}!',
                                            except_user_id=callback.from_user.id)
             else:
-                await callback.message.answer(f"Ошибка!")
+                msg = await callback.message.answer(f"Ошибка!")
         else:
-            await callback.message.answer("Ошибка! Нельзя сохранять пустое задание!")
+            msg = await callback.message.answer("Ошибка! Нельзя сохранять пустое задание!")
     else:
-        await callback.message.answer("Ошибка!")
-    await callback.message.answer(
+        msg = await callback.message.answer("Ошибка!")
+    await add_user_message(callback.from_user.id, msg.message_id)
+    msg = await callback.message.answer(
         "Выберите действие:", reply_markup=keyboard_inline_start()
     )
+    await add_user_message(callback.from_user.id, msg.message_id)
+    await delete_user_messages(callback.from_user.id, callback.bot)
     await callback.answer()
     await state.clear()
 
@@ -266,10 +283,11 @@ async def save_ht(callback: CallbackQuery, state: FSMContext):
 async def get_hw_date(callback: CallbackQuery, state: FSMContext):
     calendar = SimpleCalendar()
     await state.set_state(Form.waiting_get_hw_date)
-    await callback.message.answer(
+    msg = await callback.message.answer(
         "📅 Выберите дату для просмотра домашних заданий:",
         reply_markup=await calendar.start_calendar(),
     )
+    await add_user_message(callback.from_user.id, msg.message_id)
     await callback.answer()
 
 
@@ -281,26 +299,31 @@ async def all_hw_tomorrow(callback: CallbackQuery):
         await callback.answer()
         return
     text = f"Ответы на завтра:\n\n"
+    msgs = []
     for h in homework:
         for answ in homework[h]:
             text += f"Пользователь @{h} \nопубликовал ответ {answ['created_at'].strftime("%d.%m.%Y")} в {answ['created_at'].strftime("%H:%M")}:\nпо предмету {answ['subject']}: \n\n"
             if text:
                 text += f"{answ['text']}"
-            await callback.message.answer(text)
+            msgs.append(await callback.message.answer(text))
             for doc in answ["files"]:
                 if doc["type"] == "photo":
-                    await callback.message.answer_photo(
+                    msgs.append(await callback.message.answer_photo(
                         doc["file_id"],
                         caption=f"Фото от @{h} по предмету: {answ['subject']}",
-                    )
+                    ))
                 elif doc["type"] == "document":
-                    await callback.message.answer_document(
+                    msgs.append(await callback.message.answer_document(
                         document=doc["file_id"],
                         caption=f"Документ от @{h} по предмету {answ['subject']}:\n",
-                    )
+                    ))
             text += "\n\n"
             text = ""
-    await callback.message.answer(
+    msgs.append(await callback.message.answer(
         "Выберите действие:", reply_markup=keyboard_inline_start()
-    )
+    ))
+
+    for msg in msgs:
+        await add_user_message(callback.from_user.id, msg.message_id)
+
     await callback.answer()

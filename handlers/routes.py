@@ -19,6 +19,7 @@ sms_feature = {}
 router = Router()
 sessions = {}
 auth_messages = {}
+user_messages = {}
 
 
 async def delete_auth_messages(user_id, bot):
@@ -32,6 +33,34 @@ async def save_auth_message(user_id, message):
     if user_id not in auth_messages:
         auth_messages[user_id] = []
     auth_messages[user_id].append(message.message_id)
+
+
+async def add_user_message(user_id, message_id):
+    if user_id not in user_messages:
+        user_messages[user_id] = []
+    user_messages[user_id].append(message_id)
+
+
+async def delete_user_messages(user_id, bot, not_delete_last=1):
+    # not_delete_last это количество последних соо, которые не буду удалены.
+    if user_id not in user_messages:
+        return
+
+    if not_delete_last > 0:
+        list_msg_to_delete = user_messages[user_id][:-not_delete_last]
+    else:
+        list_msg_to_delete = user_messages[user_id]
+
+    for message_id in list_msg_to_delete:
+        try:
+            await bot.delete_message(chat_id=user_id, message_id=message_id)
+        except Exception as e:
+            print(e)
+
+    if not_delete_last > 0:
+        user_messages[user_id] = user_messages[user_id][-not_delete_last:]
+    else:
+        user_messages[user_id] = []
 
 
 @router.message(Command("start"))
@@ -48,13 +77,13 @@ async def start(message: Message):
             "Привет! Я *бот*, _созданный_ с помощью aiogram.\n Пиши /help если нужна помощь",
             parse_mode="Markdown",
         )
-        await message.answer("Выберите действие:", reply_markup=keyboard_inline_start())
+        msg = await message.answer("Выберите действие:", reply_markup=keyboard_inline_start())
     else:
-        await message.answer(
+        msg = await message.answer(
             f"Вы не можете пользоваться ботом.\nВаш ID: `{message.from_user.id}`\nСкопируйте этот ID и отправьте администратору.",
             parse_mode="Markdown"
         )
-
+    await add_user_message(message.from_user.id, msg.message_id)
 
 def init_settings(telegram_id):
     default_settings = {'boolean_notify_new_answers': False,
@@ -67,11 +96,12 @@ def init_settings(telegram_id):
 @router.message(Command("help"))
 @router.message(F.text.lower() == "помощь")
 async def help(message: Message):
-    await message.answer(
+    msg = await message.answer(
         "Команды:\n<b>/start</b> - начать работу с ботом\n<i>/help</i> - получить помощь<a href='https://google.com'>hello</a>\n/about - узнать о боте",
         parse_mode="HTML",
         reply_markup=ReplyKeyboardRemove(),
     )
+    await add_user_message(message.from_user.id, msg.message_id)
 
 
 @router.message(Command("about"))
@@ -196,4 +226,6 @@ async def test(message: Message):
 
 @router.message()
 async def talk(message: Message):
-    await message.answer("Неизвестная команда!", reply_markup=keyboard_reply_help())
+    msg = await message.answer("Неизвестная команда!", reply_markup=keyboard_reply_help())
+    await add_user_message(message.from_user.id, msg.message_id)
+
