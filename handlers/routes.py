@@ -93,13 +93,13 @@ async def start(message: Message):
             init_settings(message.from_user.id)
         await message.answer(
             "Привет! Я *бот*, _созданный_ с помощью aiogram.\n Пиши /help если нужна помощь",
-            parse_mode="Markdown",
+            parse_mode="Markdown", reply_markup=ReplyKeyboardRemove()
         )
         msg = await message.answer("Выберите действие:", reply_markup=keyboard_inline_start())
     else:
         msg = await message.answer(
-            f"Вы не можете пользоваться ботом.\nВаш ID: `{message.from_user.id}`\nСкопируйте этот ID и отправьте администратору.",
-            parse_mode="Markdown"
+            f"🚫 Вы не можете пользоваться ботом.\nВаш ID: `{message.from_user.id}`\nСкопируйте этот ID и отправьте администратору.",
+            parse_mode="Markdown", reply_markup=ReplyKeyboardRemove()
         )
     await add_user_message(message.from_user.id, msg.message_id)
 
@@ -115,16 +115,44 @@ def init_settings(telegram_id):
 @router.message(F.text.lower() == "помощь")
 async def help(message: Message):
     msg = await message.answer(
-        "Команды:\n<b>/start</b> - начать работу с ботом\n<i>/help</i> - получить помощь<a href='https://google.com'>hello</a>\n/about - узнать о боте",
+        "<b>📚 Помощь по боту</b>\n\n"
+        "<b>🔹 Основные команды:</b>\n"
+        "/start - главное меню\n"
+        "/help - эта справка\n"
+        "/about - о боте\n\n"
+        "<b>🔹 Благодаря боту можно:</b>\n"
+        "• 📖 Смотреть ДЗ из NetSchool\n"
+        "• 👤 Смотреть ДЗ от учеников\n"
+        "• ➕ Создавать ДЗ\n"
+        "• ➕ Добавлять ответы на ДЗ\n"
+        "• 🔍 Искать по дате и предмету\n"
+        "• 📊 Смотреть статистику\n"
+        "• 🔔 Настраивать уведомления\n"
+        "• 🔐 Авторизация через NetSchool\n\n",
         parse_mode="HTML",
-        reply_markup=ReplyKeyboardRemove(),
+        reply_markup=ReplyKeyboardRemove()
     )
     await add_user_message(message.from_user.id, msg.message_id)
 
 
 @router.message(Command("about"))
 async def about(message: Message):
-    await message.answer(f"разработка бота. Твое имя {message.from_user.first_name}")
+    msg = await message.answer(
+        "🤖 NAVODCHICK`S-BOT v1.0\n\n"
+        "Помощник для работы с электронным дневником.\n\n"
+        "🔹 Возможности:\n"
+        "• Просмотр ДЗ из NetSchool\n"
+        "• Добавление ответов (текст, фото, документы)\n"
+        "• Уведомления о новых заданиях\n"
+        "• Поиск по дате и предмету\n"
+        "• Статистика успеваемости\n\n"
+        "🔹 Для учеников:\n"
+        "Удобный интерфейс для работы с ДЗ.\n\n"
+        "🔹 Безопасность:\n"
+        "Авторизация через NetSchool, шифрование данных.\n\n"
+        "📢 Версия: 1.0"
+    )
+    await add_user_message(message.from_user.id, msg.message_id)
 
 
 ####################### NETSCHOOL #############################

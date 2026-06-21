@@ -323,7 +323,7 @@ def give_user_allowed(telegram_id):
 def deny_user_allowed(telegram_id):
     db_sess = db_session.create_session()
     user = db_sess.query(User).filter(User.telegram_id == telegram_id).first()
-    if not user:
+    if not user or user.is_admin:
         db_sess.close()
         return False
 

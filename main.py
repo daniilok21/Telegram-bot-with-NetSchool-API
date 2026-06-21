@@ -19,12 +19,15 @@ from handlers.calendars import router as calendar_router
 from handlers.homeworks import router as homeworks_router
 from handlers.admins_panels import router as admins_router
 from handlers.callbacks import router as callback_router
+from middlewares import IsAllowedMiddleware
 
 
 TOKEN = getenv("TOKEN")
 PROXY_URL = getenv("PROXY_URL")
 
 dp = Dispatcher()
+dp.message.middleware(IsAllowedMiddleware())
+dp.callback_query.middleware(IsAllowedMiddleware())
 dp.include_router(calendar_router)
 dp.include_router(homeworks_router)
 dp.include_router(admins_router)
