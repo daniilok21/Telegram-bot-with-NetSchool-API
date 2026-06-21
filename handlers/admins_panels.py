@@ -140,8 +140,8 @@ async def users(message: Message):
         else:
             text = ""
             for u in all_users:
-                text += f"tg_id={u['telegram_id']} username={u['username']} | is_allowed={u['is_allowed']} | is_admin={u['is_admin']}\n"
-            await message.answer(text)
+                text += f"tg-id=`{u['telegram_id']}`, username=@{u['username']}, is-allowed={u['is_allowed']}, is-admin={u['is_admin']}\n"
+            await message.answer(text, parse_mode="Markdown")
     else:
         await message.answer(
             "У вас нет прав администратора для выполнения этой команды!"

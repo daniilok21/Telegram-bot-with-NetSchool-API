@@ -3,7 +3,7 @@ from datetime import timedelta, datetime
 from importlib.resources import files
 import asyncio
 from logging import fatal
-from .routes import sessions, add_user_message
+from .routes import sessions, add_user_message, delete_last_n_messages
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -29,7 +29,12 @@ async def calendar_logic(
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
     if callback_data.act == "CANCEL":
-        print(12)
+        await state.clear()
+        await delete_last_n_messages(callback.from_user.id, callback.bot, 2)
+        msg = await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_inline_start()
+        )
+        await add_user_message(callback.from_user.id, msg.message_id)
     if selected:
         selected_date = date.strftime('%d.%m.%Y')
         msg = await callback.message.answer(
@@ -51,6 +56,13 @@ async def calendar_get_hw_logic(
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
+    if callback_data.act == "CANCEL":
+        await state.clear()
+        await delete_last_n_messages(callback.from_user.id, callback.bot, 2)
+        msg = await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_inline_view_hw()
+        )
+        await add_user_message(callback.from_user.id, msg.message_id)
     if selected:
         msgs = []
         selected_date = date.strftime("%d.%m.%Y")
@@ -99,6 +111,13 @@ async def calendar_get_hw_date_by_subject(
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
+    if callback_data.act == "CANCEL":
+        await state.clear()
+        await delete_last_n_messages(callback.from_user.id, callback.bot, 2)
+        msg = await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_inline_view_hw()
+        )
+        await add_user_message(callback.from_user.id, msg.message_id)
     if selected:
         msg = await callback.message.answer("Выберите предмет:", reply_markup=keyboard_inline_subjects())
         await state.set_state(Form.waiting_get_hw_date_by_subject2)
@@ -115,6 +134,13 @@ async def calendar_get_ht_date_by_subject(
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
+    if callback_data.act == "CANCEL":
+        await state.clear()
+        await delete_last_n_messages(callback.from_user.id, callback.bot, 2)
+        msg = await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_inline_view_ht()
+        )
+        await add_user_message(callback.from_user.id, msg.message_id)
     if selected:
         msg = await callback.message.answer("Выберите предмет:", reply_markup=keyboard_inline_subjects())
         await state.set_state(Form.waiting_get_ht_date_by_subject2)
@@ -131,6 +157,13 @@ async def calendar_add_from_user(
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
+    if callback_data.act == "CANCEL":
+        await state.clear()
+        await delete_last_n_messages(callback.from_user.id, callback.bot, 2)
+        msg = await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_inline_start()
+        )
+        await add_user_message(callback.from_user.id, msg.message_id)
     if selected:
         selected_date = date.strftime('%d.%m.%Y')
         msg = await callback.message.answer(
@@ -150,6 +183,13 @@ async def calendar_get_ht_netschool_logic(
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
+    if callback_data.act == "CANCEL":
+        await state.clear()
+        await delete_last_n_messages(callback.from_user.id, callback.bot, 2)
+        msg = await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_inline_view_ht()
+        )
+        await add_user_message(callback.from_user.id, msg.message_id)
     if selected:
         msgs = []
         try:
@@ -177,6 +217,13 @@ async def calendar_get_ht_student_logic(
     calendar = SimpleCalendar()
     selected, date = await calendar.process_selection(callback, callback_data)
 
+    if callback_data.act == "CANCEL":
+        await state.clear()
+        await delete_last_n_messages(callback.from_user.id, callback.bot, 2)
+        msg = await callback.message.answer(
+            "Выберите действие:", reply_markup=keyboard_inline_view_ht()
+        )
+        await add_user_message(callback.from_user.id, msg.message_id)
     if selected:
         msgs = []
         selected_date = date.strftime("%d.%m.%Y")

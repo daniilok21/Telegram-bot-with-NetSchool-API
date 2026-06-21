@@ -63,6 +63,24 @@ async def delete_user_messages(user_id, bot, not_delete_last=1):
         user_messages[user_id] = []
 
 
+async def delete_last_n_messages(user_id, bot, n):
+    if user_id not in user_messages:
+        return
+
+    if n >= len(user_messages[user_id]):
+        list_msg_to_delete = user_messages[user_id].copy()
+        user_messages[user_id] = []
+    else:
+        list_msg_to_delete = user_messages[user_id][-n:]
+        user_messages[user_id] = user_messages[user_id][:-n]
+
+    for message_id in list_msg_to_delete:
+        try:
+            await bot.delete_message(chat_id=user_id, message_id=message_id)
+        except Exception as e:
+            print(e)
+
+
 @router.message(Command("start"))
 async def start(message: Message):
     school = School(login="", password="", user_id=message.from_user.id)
@@ -228,4 +246,5 @@ async def test(message: Message):
 async def talk(message: Message):
     msg = await message.answer("Неизвестная команда!", reply_markup=keyboard_reply_help())
     await add_user_message(message.from_user.id, msg.message_id)
+    await add_user_message(message.from_user.id, message.message_id)
 

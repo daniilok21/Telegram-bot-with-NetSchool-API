@@ -94,7 +94,8 @@ async def homework_subject(callback: CallbackQuery, state: FSMContext):
             text = f"ДЗ на {selected_date} по предмету {current_subject}:\n\n"
             for h in hometask:
                 for answ in hometask[h]:
-                    date_str_in_date = datetime.strptime(answ['created_at'].replace('T', ' '), "%Y-%m-%d %H:%M:%S")
+                    created_at = answ['created_at'].replace('T', ' ').split('.')[0]
+                    date_str_in_date = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
                     text += f"Пользователь @{h} \nопубликовал задание {date_str_in_date.strftime("%d.%m.%Y")} в {date_str_in_date.strftime("%H:%M")}:\nпо предмету {answ['subject']}:\n\n"
                     if answ['description']:
                         text += f"{answ['description']}"
@@ -145,9 +146,10 @@ async def homework_answer(message: Message, state: FSMContext):
             file_name = "Document"
         files.append({"file_id": file_id, "type": "document", "name": file_name,
                       "caption": message.caption if message.caption else None})
-        msg = await message.answer(f"Документ '{file_name}' добавлен! Всего файлов: {len(files)}")
+        msg = await message.answer(f"📄 Документ '{file_name}' добавлен!\nВсего файлов: {len(files)}")
     else:
         msg = await message.answer("❌ Неподдерживаемый тип файла. Отправьте текст, фото или документ.")
+    await add_user_message(message.from_user.id, message.message_id)
     await add_user_message(message.from_user.id, msg.message_id)
     await state.update_data(answer=text)
     await state.update_data(files=files)
@@ -197,12 +199,14 @@ async def hometask_text(message: Message, state: FSMContext):
             file_name = "Document"
         files.append({"file_id": file_id, "type": "document", "name": file_name,
                       "caption": message.caption if message.caption else None})
-        msg = await message.answer(f"Документ '{file_name}' добавлен! Всего файлов: {len(files)}")
+        msg = await message.answer(f"📄 Документ '{file_name}' добавлен!\nВсего файлов: {len(files)}")
     else:
         msg = await message.answer("❌ Неподдерживаемый тип файла. Отправьте текст, фото или документ.")
+    await add_user_message(message.from_user.id, message.message_id)
     await add_user_message(message.from_user.id, msg.message_id)
     await state.update_data(answer=text)
     await state.update_data(files=files)
+
 
 @router.callback_query(lambda c: c.data == "back")
 async def back(callback: CallbackQuery, state: FSMContext):
@@ -225,18 +229,18 @@ async def save_hw(callback: CallbackQuery, state: FSMContext):
     if date:
         if files or text:
             if add_hw(callback.from_user.id, subject, date, text, files):
-                msg = await callback.message.answer(f"Ответ сохранен на дату\n{date}")
+                msg = await callback.message.answer(f"✅ Ответ сохранен на дату\n{date}")
                 user = get_user_by_telegram_id(callback.from_user.id)
                 user_name = user.username
                 await send_notify_to_users(callback.bot, "boolean_notify_new_answers", 'Новый ответ на ДЗ!',
                                            f'Пользователь @{user_name}\nопубликовал ответ на ДЗ по предмету {subject} на {date}!',
                                            except_user_id=callback.from_user.id)
             else:
-                msg = await callback.message.answer(f"Ошибка!")
+                msg = await callback.message.answer(f"❌ Ошибка!")
         else:
-            msg = await callback.message.answer("Ошибка! Нельзя сохранять пустой ответ!")
+            msg = await callback.message.answer("❌ Ошибка! Нельзя сохранять пустой ответ!")
     else:
-        msg = await callback.message.answer("Ошибка!")
+        msg = await callback.message.answer("❌ Ошибка!")
     await add_user_message(callback.from_user.id, msg.message_id)
     msg = await callback.message.answer(
         "Выберите действие:", reply_markup=keyboard_inline_start()
@@ -257,18 +261,18 @@ async def save_ht(callback: CallbackQuery, state: FSMContext):
     if date:
         if files or text:
             if add_ht(subject, date, description=text, files=files, telegram_id=callback.from_user.id):
-                msg = await callback.message.answer(f"Задание сохранено на дату\n{date}")
+                msg = await callback.message.answer(f"✅ Задание сохранено на дату\n{date}")
                 user = get_user_by_telegram_id(callback.from_user.id)
                 user_name = user.username
                 await send_notify_to_users(callback.bot, "boolean_notify_new_homework", 'Новое ДЗ!',
                                            f'Пользователь @{user_name}\nопубликовал ДЗ по предмету {subject} на {date}!',
                                            except_user_id=callback.from_user.id)
             else:
-                msg = await callback.message.answer(f"Ошибка!")
+                msg = await callback.message.answer(f"❌ Ошибка!")
         else:
-            msg = await callback.message.answer("Ошибка! Нельзя сохранять пустое задание!")
+            msg = await callback.message.answer("❌ Ошибка! Нельзя сохранять пустое задание!")
     else:
-        msg = await callback.message.answer("Ошибка!")
+        msg = await callback.message.answer("❌ Ошибка!")
     await add_user_message(callback.from_user.id, msg.message_id)
     msg = await callback.message.answer(
         "Выберите действие:", reply_markup=keyboard_inline_start()
