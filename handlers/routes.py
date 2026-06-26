@@ -1,5 +1,5 @@
 import asyncio
-
+from data.db_manager import init_subjects
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -10,14 +10,17 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
+from api.service import School
 from data.db_manager import *
 from .keyboards import *
 from .forms import *
-from api.start import School
-#смс пользователей id - message
+
+# from api.start import School
+# смс пользователей id - message
 sms_feature = {}
 router = Router()
 sessions = {}
+unauthorized_sessions = {}
 auth_messages = {}
 
 
@@ -38,8 +41,6 @@ async def save_auth_message(user_id, message):
 async def start(message: Message):
     school = School(login="", password="", user_id=message.from_user.id)
     await school._wait_init()
-    sessions[message.from_user.id] = school
-    print(sessions)
     new_or_old_user_check_and_create(message.from_user.id, message.from_user.username)
     if check_user_is_allowed(message.from_user.id):
         if not user_has_settings(message.from_user.id):
@@ -52,14 +53,24 @@ async def start(message: Message):
     else:
         await message.answer(
             f"Вы не можете пользоваться ботом.\nВаш ID: `{message.from_user.id}`\nСкопируйте этот ID и отправьте администратору.",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
         )
 
 
+@router.message(Command("init_subjects"))
+async def subjects(message: Message):
+    school = sessions.get(message.from_user.id)
+    subjects = await school.show_all_subjects(flag=True)
+    await message.answer(await school.show_all_subjects(), parse_mode="Markdown")
+    init_subjects(subjects)
+
+
 def init_settings(telegram_id):
-    default_settings = {'boolean_notify_new_answers': False,
-                        'boolean_notify_new_homework': False,
-                        'boolean_notify_admins': True}
+    default_settings = {
+        "boolean_notify_new_answers": False,
+        "boolean_notify_new_homework": False,
+        "boolean_notify_admins": True,
+    }
     for key, value in default_settings.items():
         add_settings(telegram_id, key, value)
 
@@ -81,23 +92,22 @@ async def about(message: Message):
 
 ####################### NETSCHOOL #############################
 
+
 @router.callback_query(lambda c: c.data == "log_in")
 async def log_in(callback: CallbackQuery, state: FSMContext):
-    try:
-        school = sessions.get(callback.from_user.id)
-        await delete_auth_messages(callback.from_user.id, callback.bot)
-        if not school:
-            await callback.message.answer("нажмите /start")
-        if not school.active:
-            message = await callback.message.answer("Авторизация на сайт netschool\nВведите номер телефона(+7)",
-                                          reply_markup=keyboard_back())
-            await save_auth_message(callback.from_user.id, message)
-            await state.set_state(Auth.login)
-        else:
-            await callback.message.answer("Вы уже авторизованы!", reply_markup=keyboard_logout())
 
-    except Exception as e:
-        await callback.message.answer("/start")
+    if unauthorized_sessions.get(callback.from_user.id):
+        await delete_auth_messages(callback.from_user.id, callback.bot)
+
+        message = await callback.message.answer(
+            "Авторизация на сайт netschool\nВведите номер телефона(+7)",
+            reply_markup=keyboard_back(),
+        )
+        await save_auth_message(callback.from_user.id, message)
+        await state.set_state(Auth.login)
+
+    else:
+        await callback.message.answer("вы уже авторизованы")
     await callback.answer()
 
 
@@ -107,13 +117,18 @@ async def netschool_login(message: Message, state: FSMContext):
     await save_auth_message(message.from_user.id, message)
 
     if not (phone.startswith("+7") and len(phone) == 12 and phone[1:].isdigit()):
-        msg = await message.answer("Введите корректный номер телефона.\n""Пример: +79991234567", reply_markup=keyboard_back())
+        msg = await message.answer(
+            "Введите корректный номер телефона.\nПример: +79991234567",
+            reply_markup=keyboard_back(),
+        )
         await save_auth_message(message.from_user.id, msg)
         return
 
     await state.update_data(login=phone)
 
-    msg = await message.answer("Отлично!\nВведите пароль:", reply_markup=keyboard_back())
+    msg = await message.answer(
+        "Отлично!\nВведите пароль:", reply_markup=keyboard_back()
+    )
     await save_auth_message(message.from_user.id, msg)
     await state.set_state(Auth.password)
 
@@ -142,18 +157,18 @@ async def netschool_password(message: Message, state: FSMContext):
 
     # sms_user мы передаем в сам класс, функция отрабатывает и отдает коробку уже библиотеке
 
-    school = sessions[message.from_user.id]
+    school = unauthorized_sessions.get(message.from_user.id)
     school._log = login
     school._password = password
+
     school.otp_callback = sms_user
 
     async def log_school():
         try:
             await school.login()
-            sessions[message.from_user.id] = school
-            print(sessions)
+            print(f"auth {sessions}")
             await delete_auth_messages(message.from_user.id, message.bot)
-            await message.answer("успешно вошел", reply_markup=keyboard_logout())
+            await message.answer("успешно вошел")
             print(message.from_user.id)
         except Exception as e:
             await message.answer(f"{e}")
@@ -161,18 +176,18 @@ async def netschool_password(message: Message, state: FSMContext):
     asyncio.create_task(log_school())
 
 
-@router.message(F.text == "Разлогин")
-async def logout_sch(message: Message, state: FSMContext):
-    print(sessions)
-    if message.from_user.id not in sessions:
-        await message.answer(text="Авторизуйтесь")
-    else:
-        print("разлогин")
-        await state.clear()
-        school = sessions[message.from_user.id]
-        await school.logout()
-        del sessions[message.from_user.id]
-        await message.answer(text="Успешный разлогин")
+# @router.message(F.text == "Разлогин")
+# async def logout_sch(message: Message, state: FSMContext):
+#     print(sessions)
+#     if message.from_user.id not in sessions:
+#         await message.answer(text="Авторизуйтесь")
+#     else:
+#         print("разлогин")
+#         await state.clear()
+#         school = sessions[message.from_user.id]
+#         await school.logout()
+#         del sessions[message.from_user.id]
+#         await message.answer(text="Успешный разлогин")
 
 
 @router.message(Auth.sms, F.text)
@@ -186,6 +201,8 @@ async def netschool_sms(message: Message, state: FSMContext):
     future = sms_feature[message.from_user.id]
     if future and not future.done():
         future.set_result(sms)
+
+
 ########################################################################################
 
 
