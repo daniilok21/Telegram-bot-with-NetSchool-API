@@ -633,20 +633,29 @@ class SubjectGrades:
         marks: Список пар ``(оценка, вес)``.
         average: Простой средний балл.
         weighted_average: Средневзвешенный балл.
+        date: дата оценки
     """
     subject: str
-    marks: List[Tuple[int, int]]
+    marks: List[Tuple[datetime.date, int, int]]
     average: float
     weighted_average: float
 
+
     @classmethod
-    def compute(cls, subject: str, marks: List[Tuple[int, int]]) -> SubjectGrades:
+    def compute(cls, subject: str, marks: List[Tuple[datetime.date, int, int]]) -> SubjectGrades:
         """Подсчитать средний и средневзвешенный баллы из списка ``(оценка, вес)``."""
         if not marks:
             return cls(subject=subject, marks=[], average=0.0, weighted_average=0.0)
-        avg = sum(m for m, _ in marks) / len(marks)
-        total_w = sum(w for _, w in marks)
-        wavg = sum(m * w for m, w in marks) / total_w if total_w else 0.0
+
+        numeric_marks = [m for _, m, _ in marks if isinstance(m, int)]
+
+        if not numeric_marks:
+            return cls(subject=subject, marks=marks, average=0.0, weighted_average=0.0)
+
+        avg = sum(numeric_marks) / len(numeric_marks)
+        total_w = sum(w for _, m, w in marks if isinstance(m, int))
+        wavg = sum(m * w for _, m, w in marks if isinstance(m, int)) / total_w if total_w else 0.0
+
         return cls(subject=subject, marks=marks, average=avg, weighted_average=wavg)
 
 

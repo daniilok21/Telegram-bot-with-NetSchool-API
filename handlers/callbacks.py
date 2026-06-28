@@ -4,6 +4,7 @@ from importlib.resources import files
 import asyncio
 from logging import fatal
 
+from Python313.Lib.test.crashers.mutation_inside_cyclegc import callback
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -17,7 +18,7 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram.utils.text_decorations import markdown_decoration
 from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback
 from data.db_manager import *
-from handlers.routes import sessions
+from handlers.routes import sessions, subjects
 from .keyboards import *
 from .forms import *
 from api.service import School
@@ -44,7 +45,6 @@ async def get_ht_netschool(callback: CallbackQuery, state: FSMContext):
         reply_markup=await calendar.start_calendar(),
     )
     await callback.answer()
-
 
 @router.callback_query(
     lambda c: c.data == "get_ht_students" or c.data == "get_ht_date_student"
@@ -90,10 +90,36 @@ async def view_answer_ht(callback: CallbackQuery):
 
 
 @router.callback_query(lambda c: c.data == "average_score")
-async def average_score(callback: CallbackQuery):
-    school = sessions.get(callback.from_user.id)
-    await school.get_average_subject()
+async def average_score(callback: CallbackQuery, state: FSMContext):
+
+    await callback.message.answer(
+        "Выберите предмет:", reply_markup=keyboard_inline_subjects()
+    )
+    await state.set_state(AverageSubject.subject)
     await callback.answer()
+
+@router.callback_query(AverageSubject.subject ,F.data.startswith("subject_"))
+async def netschool_subject(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    subject_id = int(callback.data.split("_")[1])
+    current_subject = get_subject_by_id(subject_id)
+    print(current_subject)
+    await state.update_data(subject=current_subject)
+    await state.set_state(AverageSubject.period)
+    await callback.message.answer("Выберите период", reply_markup=get_period())
+
+
+@router.callback_query(AverageSubject.period, F.data.startswith("period_"))
+async def netschool_period(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    period_id = int(callback.data.split("_")[1])
+    await state.update_data(period=period_id)
+    data = await state.get_data()
+    subject = data["subject"]
+    period = data["period"]
+    await state.clear()
+    school = sessions.get(callback.from_user.id)
+    await callback.message.answer(await school.get_average_subject(subject=subject, period=period), parse_mode="HTML")
 
 
 @router.callback_query(lambda c: c.data == "settings")

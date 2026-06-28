@@ -36,6 +36,15 @@ def keyboard_inline_start():
     return keyboard
 
 
+def get_period():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="1", callback_data="period_1"),
+             InlineKeyboardButton(text="2", callback_data="period_2")],
+        ])
+    return keyboard
+
+
 def keyboard_inline_subjects():
     keyboard_markup = []
     row = []

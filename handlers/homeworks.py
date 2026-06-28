@@ -25,10 +25,10 @@ sms_feature = {}
 router = Router()
 
 
-@router.callback_query(F.data.startswith("subject_"))
+@router.callback_query(Form.waiting_hw_subject, F.data.startswith("subject_"))
 async def homework_subject(callback: CallbackQuery, state: FSMContext):
     subject_id = int(callback.data.split("_")[1])
-    subjects = get_all_subjects()
+
     current_subject = get_subject_by_id(subject_id)
     current_state = await state.get_state()
     data = await state.get_data()

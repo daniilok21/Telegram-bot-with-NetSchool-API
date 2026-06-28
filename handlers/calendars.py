@@ -161,7 +161,7 @@ async def calendar_get_ht_netschool_logic(
         try:
             school = sessions.get(callback.from_user.id)
             await callback.message.answer(
-                await school.today_homework(str(date.strftime("%Y, %-m, %-d")))
+                await school.today_homework(date),parse_mode="HTML",
             )
             await state.clear()
             await callback.message.answer(
@@ -172,7 +172,6 @@ async def calendar_get_ht_netschool_logic(
             await callback.message.answer(
                 f"ошибка на сторороне сервера попробуйте позже\nошибка {e}"
             )
-            await school.logout()
     await callback.answer()
 
 

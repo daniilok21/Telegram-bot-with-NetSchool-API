@@ -1,24 +1,27 @@
 import asyncio
+from datetime import date
 
-from sqlalchemy.util.typing import NoneType
-
-from data.db_manager import create_check_netschool_session
-from netschool_cap import NetSchool
-import logging
-from datetime import date, datetime
-from data.sessions import Session
 from data import db_session
+from data.db_manager import create_check_netschool_session
 from data.encoder import decrypt
-# logging.basicConfig(level=logging.DEBUG)
+from data.sessions import Session
+from netschool_cap import NetSchool
 
+
+# logging.basicConfig(level=logging.DEBUG)
+MONTHS = {
+    1: "января", 2: "февраля", 3: "марта", 4: "апреля",
+    5: "мая", 6: "июня", 7: "июля", 8: "августа",
+    9: "сентября", 10: "октября", 11: "ноября", 12: "декабря"
+}
 
 class School:
     def __init__(
-        self,
-        user_id,
-        login,
-        password,
-        school="МБОУ «Средняя общеобразовательная школа №10» г. Канаш",
+            self,
+            user_id,
+            login,
+            password,
+            school="МБОУ «Средняя общеобразовательная школа №10» г. Канаш",
     ):
         self._log = login
         self._password = password
@@ -98,35 +101,34 @@ class School:
                 print(f"error: {e}")
 
     async def today_homework(self, dat):
-        y, m, d = map(int, dat.split(", "))
+
+        y, m, d = dat.year, dat.month, dat.day
         diary = await self.ns.diary(start=date(y, m, d), end=date(y, m, d))
         lines = []
         if diary:
-            dt = str(diary.start.strftime("%d.%m.%Y"))
-            lines.append(dt)
-            lines.append("🎒 Домашние задания")
+            # Заголовок с датой
+            dt = diary.start.strftime("%d.%m.%Y")
+            lines.append(f"📅 <b>На {dt}</b>")
+            lines.append("➖➖➖➖➖➖➖➖➖➖")
+
+            tasks_found = False
+
             for day in diary.schedule:
-                for lessons in day.lessons:
-                    homework = [
-                        asg.content
-                        for asg in lessons.assignments
-                        if asg.kind_abbr == "ДЗ"
-                    ]
-                    line = (
-                        "\t"
-                        + "📌"
-                        + str(lessons.subject)
-                        + "\n"
-                        + "\t"
-                        + "📝   "
-                        + " ".join(homework)
-                        + "\n"
-                    )
-                    lines.append(line)
-            if len(lines) > 2:
+                for lesson in day.lessons:
+                    homework = [asg.content for asg in lesson.assignments if asg.kind_abbr == "ДЗ"]
+                    if homework:
+                        tasks_found = True
+
+                        subject_text = f"📌 <b>{lesson.subject}</b>"
+                        tasks_text = f"📝 <i>{'; '.join(homework)}</i>"
+
+                        lines.append(f"{subject_text}\n{tasks_text}")
+                        lines.append("─────────────────────────")
+
+            if tasks_found:
                 return "\n".join(lines)
 
-            return f"{dt}\nНет домашних заданий"
+            return f"📅 <b>На {dt}</b>\n➖➖➖➖➖➖➖➖➖➖\n✅ <i>Домашних заданий нет</i>"
 
     async def show_all_subjects(self, flag=False):
         try:
@@ -137,17 +139,31 @@ class School:
         except Exception:
             print("ваша сессия закночилась\nавторизуйтесь заново")
 
-    async def get_average_subject(self):
-        grades = await self.ns.term_grades(
-            start=date(2026, 9, 1), end=date(2026, 12, 1)
-        )
-        result = []
-        for g in grades:
-            result.append(
-                {
-                    "subject": g.subject,
-                    "average": g.average,
-                    "weighted_average": g.weighted_average,
-                }
-            )
-        print(result)
+    async def get_average_subject(self, subject: str, period: int):
+        if period == 1:
+            marks = await self.ns.term_grades(date(2025, 9, 1), date(2025, 12, 31),
+                                                 subject=subject)
+        elif period == 2:
+            marks = await self.ns.term_grades(date(2026, 1, 1), date(2026, 8, 31),
+                                              subject=subject)
+        else:
+            print("ошибка")
+            return None
+        lines = []
+        for subject_grades in marks:
+
+            lines.append(f"<b>📖 Предмет: {subject_grades.subject.upper()}</b>")
+            lines.append("<code>─────────────────────────</code>")
+
+            for dt, mark, weight in subject_grades.marks:
+                dat = f"{dt.day:02d}.{dt.month:02d}.{dt.year}"
+
+                lines.append(f"• <code>{dat}</code> — оценка: <b>{mark}</b> (вес: <code>{weight}</code>)")
+
+            lines.append("<code>─────────────────────────</code>")
+            lines.append(f"📊 Средний: <code>{subject_grades.average:.2f}</code>")
+            lines.append(f"⚖️ Ср. взвеш.: <code>{subject_grades.weighted_average:.2f}</code>")
+            lines.append("\n")
+
+        # Соединяем в одну строку
+        return "\n".join(lines)

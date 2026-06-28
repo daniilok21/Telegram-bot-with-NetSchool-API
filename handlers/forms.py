@@ -24,3 +24,9 @@ class Auth(StatesGroup):
     login = State()
     password = State()
     sms = State()
+
+class AverageSubject(StatesGroup):
+    subject = State()
+    period = State()
+
+

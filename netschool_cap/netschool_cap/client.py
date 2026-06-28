@@ -2272,11 +2272,12 @@ class NetSchool:
                         continue
                     for a in lesson.assignments:
                         if a.mark:
+                            event_date = getattr(day, 'date', getattr(day, 'day', None))
+
                             marks_by_subject.setdefault(subj, []).append(
-                                (a.mark, a.weight)
+                                (event_date, a.mark, a.weight)
                             )
             current = week_end + timedelta(days=1)
-
         result = [
             SubjectGrades.compute(subj, marks)
             for subj, marks in sorted(marks_by_subject.items())

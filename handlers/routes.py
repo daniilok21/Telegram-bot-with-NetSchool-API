@@ -98,13 +98,13 @@ async def log_in(callback: CallbackQuery, state: FSMContext):
 
     if unauthorized_sessions.get(callback.from_user.id):
         await delete_auth_messages(callback.from_user.id, callback.bot)
-
+        await state.set_state(Auth.login)
         message = await callback.message.answer(
             "Авторизация на сайт netschool\nВведите номер телефона(+7)",
             reply_markup=keyboard_back(),
         )
         await save_auth_message(callback.from_user.id, message)
-        await state.set_state(Auth.login)
+
 
     else:
         await callback.message.answer("вы уже авторизованы")
